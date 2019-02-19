@@ -9,6 +9,8 @@ namespace DisorderlyWithdrawal {
         public int LightWingMonthlyCost = 50000;
         public int MediumWingMonthlyCost = 75000;
         public int HeavyWingMonthlyCost = 100000;
+
+        public int LeopardRepairCostPerDamage = 10;
         
         public override string ToString() {
             return $"Debug:{Debug}";

@@ -1,38 +1,46 @@
 ﻿using BattleTech;
 using BattleTech.UI;
 using Harmony;
-using System.Reflection;
+using System;
 using TMPro;
+using UnityEngine;
 
 namespace DisorderlyWithdrawal.Patches {
     
     [HarmonyPatch(typeof(CombatHUDRetreatEscMenu), "OnRetreatButtonPressed")]
     public static class CombatHUDRetreatESCMenu_OnRetreatButtonPressed {
         public static bool Prefix(CombatHUDRetreatEscMenu __instance, HBSDOTweenButton ___RetreatButton, CombatGameState ___Combat, CombatHUD ___HUD) {
-            DisorderlyWithdrawal.Logger.LogIfDebug("CHUDREM:ORBP entered");
+            DisorderlyWithdrawal.Logger.LogIfDebug($"CHUDREM:ORBP - triggered:{ModState.WithdrawalTriggered} tillOverhead:{ModState.RoundsUntilOverhead} tillReady:{ModState.RoundsUntilReady}");
 
             if (ModState.WithdrawalTriggered && ModState.RoundsUntilOverhead == 0) {
-
-                // Check for combat damage
-                float combatDamage = Helper.CalculateCombatDamage();
-                if (combatDamage > 0) {
+                DisorderlyWithdrawal.Logger.LogIfDebug($"CHUDREM:ORBP - Checking for combat damage and active enemies");
+                ModState.CombatDamage = Helper.CalculateCombatDamage();
+                if (ModState.CombatDamage > 0 && ___Combat.TurnDirector.DoAnyUnitsHaveContactWithEnemy) {
+                    int repairCost = (int)Math.Ceiling(ModState.CombatDamage) * DisorderlyWithdrawal.ModConfig.LeopardRepairCostPerDamage;
+                    void withdrawAction() { OnImmediateWithdraw(__instance.IsGoodFaithEffort()); }
                     GenericPopupBuilder builder = GenericPopupBuilder.Create(GenericPopupType.Warning,
-                        $"Enemies are within weapons range, if you retreat now the Leopard will take {combatDamage} damage that will have to be repaired.")
+                        $"Enemies are within weapons range, if you retreat now the Leopard will take {SimGameState.GetCBillString(repairCost)} damage that will have to be repaired.")
                         .CancelOnEscape()
                         .AddButton("Cancel")
-                        .AddButton("Withdraw");
+                        .AddButton("Withdraw", withdrawAction, true, null);
                     builder.IsNestedPopupWithBuiltInFade = true;
                     ___HUD.SelectionHandler.GenericPopup = builder.Render();
                     return false;
                 } else {
-                    MissionRetreatMessage message = new MissionRetreatMessage(__instance.IsGoodFaithEffort());
-                    ___Combat.MessageCenter.PublishMessage(message);
-                    ___HUD.SelectionHandler.GenericPopup = null;
+                    OnImmediateWithdraw(__instance.IsGoodFaithEffort());
                     return false;
                 }
             } else {
                 return true;
             }
+        }
+
+        public static void OnImmediateWithdraw(bool isGoodFaith) {
+            DisorderlyWithdrawal.Logger.LogIfDebug($"CHUDREM:ORBP:OnImmediateWithdraw - {isGoodFaith}");
+            CombatGameState Combat = UnityGameInstance.BattleTechGame.Combat;
+            MissionRetreatMessage message = new MissionRetreatMessage(isGoodFaith);
+            Combat.MessageCenter.PublishMessage(message);
+            ModState.HUD.SelectionHandler.GenericPopup = null;
         }
     }
 
@@ -57,16 +65,14 @@ namespace DisorderlyWithdrawal.Patches {
                     ModState.RetreatButton = __instance.RetreatButton;
                     ModState.HUD = ___HUD;
 
-                    ModState.RetreatButton.SetState(ButtonState.Disabled);
-                    FieldInfo textField = AccessTools.Field(typeof(HBSButtonBase), "Text");
-                    TextMeshProUGUI text = (TextMeshProUGUI)textField.GetValue(ModState.RetreatButton);
-                    if (text != null) {
-                        DisorderlyWithdrawal.Logger.Log($"Setting via text object");
-                        text.SetText($"Inbound - { roundsToWait}", new object[] { });
-                    } else {
-                        DisorderlyWithdrawal.Logger.Log($"Text was null from lookup, using button.SetText ");
-                        ModState.RetreatButton.SetText($"Inbound - { roundsToWait}");
+                    Transform textT = __instance.RetreatButton.gameObject.transform.Find("Text");
+                    if (textT != null) {
+                        GameObject textGO = textT.gameObject;
+                        ModState.RetreatButtonText = textGO.GetComponent<TextMeshProUGUI>();
                     }
+
+                    ModState.RetreatButton.SetState(ButtonState.Disabled, true);
+                    ModState.RetreatButtonText.SetText($"In { roundsToWait } Rounds", new object[] { });
 
                     GenericPopupBuilder genericPopupBuilder =
                         GenericPopupBuilder.Create(GenericPopupType.Info,
@@ -74,9 +80,6 @@ namespace DisorderlyWithdrawal.Patches {
                             .AddButton("Continue");
                     genericPopupBuilder.IsNestedPopupWithBuiltInFade = true;
                     ___HUD.SelectionHandler.GenericPopup = genericPopupBuilder.Render();
-
-                    // TODO: MOVE TO A BETTER PLACE
-                    Helper.CalculateCombatDamage();
 
                     return false;
                 } else {
@@ -89,17 +92,27 @@ namespace DisorderlyWithdrawal.Patches {
 
     [HarmonyPatch(typeof(CombatHUDRetreatEscMenu), "Update")]
     public static class CombatHUDRetreatESCMenu_Update {
-        public static void Postfix(CombatHUDRetreatEscMenu __instance, HBSDOTweenButton ___RetreatButton, CombatGameState ___Combat, CombatHUD ___HUD, bool ___isArena) {
+        public static void Postfix(CombatHUDRetreatEscMenu __instance, CombatGameState ___Combat, CombatHUD ___HUD, bool ___isArena) {
             //DisorderlyWithdrawal.Logger.LogIfDebug("CHUDREM:U entered");
 
-            if (!___isArena && ModState.RoundsUntilOverhead > 0) {
-                //DisorderlyWithdrawal.Logger.LogIfDebug("CHUDREM:U forcing button to disabled");
-                //___RetreatButton.SetState(ButtonState.Disabled, true);
-                ___RetreatButton.gameObject.SetActive(false);
-                ___RetreatButton.SetText($"Inbound - { ModState.RoundsUntilOverhead }");
-                ___RetreatButton.gameObject.SetActive(true);
+            if (!___isArena) {
+                if (ModState.RoundsUntilOverhead > 0) {
+                    __instance.RetreatButton.SetState(ButtonState.Disabled, true);
+                    ModState.RetreatButtonText.fontSize = 24;
+                    ModState.RetreatButtonText.color = Color.white;
+                    ModState.RetreatButtonText.SetText($"In { ModState.RoundsUntilOverhead } Rounds", new object[] { });
+                } else if (ModState.RoundsUntilOverhead == 0) {
+                    __instance.RetreatButton.SetState(ButtonState.Enabled, true);
+                    ModState.RetreatButtonText.fontSize = 24;
+                    ModState.RetreatButtonText.color = Color.white;
+                    ModState.RetreatButtonText.SetText($"Withdraw", new object[] { });
+                } else if (ModState.RoundsUntilReady > 0) {
+                    __instance.RetreatButton.SetState(ButtonState.Disabled, true);
+                    ModState.RetreatButtonText.fontSize = 24;
+                    ModState.RetreatButtonText.color = Color.white;
+                    ModState.RetreatButtonText.SetText($"In { ModState.RoundsUntilReady } Rounds", new object[] { });
+                }
             }
-
         }
     }
 
@@ -111,30 +124,41 @@ namespace DisorderlyWithdrawal.Patches {
             if (ModState.WithdrawalTriggered) {
                 if (ModState.RoundsUntilOverhead == 0) {
                     ModState.RoundsUntilReady = Helper.RoundsToWaitByAerospace();
+
                     GenericPopupBuilder genericPopupBuilder =
                         GenericPopupBuilder.Create(GenericPopupType.Info,
-                        $"Sumire is overhead. If you don't withdraw on this round, she will to retreat and you will be unable to withdraw for another {ModState.RoundsUntilReady} rounds!")
+                        $"Sumire is overhead. If you don't withdraw on this round, she will retreat. She will be unavailable for another {ModState.RoundsUntilReady} rounds!")
                         .AddButton("Continue");
                     genericPopupBuilder.IsNestedPopupWithBuiltInFade = true;
                     ModState.HUD.SelectionHandler.GenericPopup = genericPopupBuilder.Render();
 
-                    ModState.RetreatButton.SetState(ButtonState.Enabled);
-                    ModState.RetreatButton.SetText("Withdraw");
+                } else if (ModState.RoundsUntilReady == 0) {
+                    ModState.WithdrawalTriggered = false;
+                    ModState.RoundsUntilOverhead = -1;
+                    ModState.RoundsUntilReady = -1;
 
-                } else if (ModState.RoundsUntilOverhead > 0) {
-                    ModState.RetreatButton.SetText($"Withdraw - {ModState.RoundsUntilOverhead} rounds");
+                    ModState.RetreatButton.SetState(ButtonState.Enabled, true);
+                    ModState.RetreatButtonText.SetText($"Withdraw", new object[] { });
+                }
+            }
+        }
+    }
 
-                } else if (ModState.RoundsUntilOverhead < 0) {
+    [HarmonyPatch(typeof(TurnDirector), "EndCurrentRound")]
+    public static class TurnDirector_EndCurrentRound {
+        static void Postfix(TurnDirector __instance) {
+            DisorderlyWithdrawal.Logger.LogIfDebug($"TD:ECR entered - withdrawalTrigger:{ModState.WithdrawalTriggered} roundsUntilWithdrawal:{ModState.RoundsUntilOverhead}");
+
+            if (ModState.WithdrawalTriggered) {
+                if (ModState.RoundsUntilOverhead == 0) {
                     // Player didn't withdraw. Reset the button and prevent them from restarting for N turns
                     ModState.WithdrawalTriggered = false;
                     ModState.RoundsUntilOverhead = -1;
-                }
-
-                ModState.RoundsUntilOverhead = ModState.RoundsUntilOverhead - 1;
-            }
-
-            if (ModState.RoundsUntilReady > 0) {
-                ModState.RoundsUntilReady--;
+                } else if (ModState.RoundsUntilOverhead > 0) {
+                    ModState.RoundsUntilOverhead = ModState.RoundsUntilOverhead - 1;
+                } else if (ModState.RoundsUntilReady > 0) {
+                    ModState.RoundsUntilReady = ModState.RoundsUntilReady - 1;
+                } 
             }
         }
     }
@@ -148,14 +172,16 @@ namespace DisorderlyWithdrawal.Patches {
             ModState.RoundsUntilOverhead = 0;
             ModState.RoundsUntilReady = 0;
             ModState.RetreatButton = null;
+            ModState.RetreatButtonText = null;
             ModState.HUD = null;
+            // DO NOT OVERWRITE CombatDamage!
         }
     }
 
     [HarmonyPatch(typeof(SimGameState), "GetExpenditures")]
     public static class SimGameState_GetExpenditures {
         public static void Postfix(SimGameState __instance, ref int __result, bool proRate) {
-            DisorderlyWithdrawal.Logger.LogIfDebug($"SGS:GE entered");
+            DisorderlyWithdrawal.Logger.LogIfDebug($"SGS:GE entered with {__result}");
 
             Statistic aerospaceAssets = __instance.CompanyStats.GetStatistic("AerospaceAssets");
             int aerospaceSupport = aerospaceAssets != null ? aerospaceAssets.Value<int>() : 0;
@@ -164,19 +190,56 @@ namespace DisorderlyWithdrawal.Patches {
             switch (aerospaceSupport) {
                 case 3:
                     __result = __result + DisorderlyWithdrawal.ModConfig.HeavyWingMonthlyCost;
-                    DisorderlyWithdrawal.Logger.LogIfDebug($"Charging player for a heavy wing.");
+                    DisorderlyWithdrawal.Logger.LogIfDebug($"Charging player for a heavy wing, result = {__result}.");
                     break;
                 case 2:
                     __result = __result + DisorderlyWithdrawal.ModConfig.MediumWingMonthlyCost;
-                    DisorderlyWithdrawal.Logger.LogIfDebug($"Charging player for a medium wing.");
+                    DisorderlyWithdrawal.Logger.LogIfDebug($"Charging player for a medium wing, result = {__result}.");
                     break;
                 case 1:
                     __result = __result + DisorderlyWithdrawal.ModConfig.LightWingMonthlyCost;
-                    DisorderlyWithdrawal.Logger.LogIfDebug($"Charging player for a light wing.");
+                    DisorderlyWithdrawal.Logger.LogIfDebug($"Charging player for a light wing, result = {__result}.");
                     break;
                 default:
+                    DisorderlyWithdrawal.Logger.LogIfDebug($"Charging player for no aerospace, result = {__result}");
                     break;
             }
+        }
+    }
+
+    [HarmonyPatch(typeof(AAR_ContractResults_Screen), "FillInData")]
+    public static class AAR_ContractResults_Screen_FillInData {
+
+        public static void Postfix(AAR_ContractResults_Screen __instance) {
+            if (ModState.CombatDamage != 0) {
+                int repairCost = (int)Math.Ceiling(ModState.CombatDamage) * DisorderlyWithdrawal.ModConfig.LeopardRepairCostPerDamage;
+                GenericPopupBuilder.Create(GenericPopupType.Info,
+                    $"The Leopard was damaged in the extraction process, and needs to be repaired." +
+                    $"{SimGameState.GetCBillString(repairCost)} will be deducted for repairs."
+                    )
+                    .AddButton("Continue", new System.Action(OnContinue), false, null)
+                    .Render();
+            }
+
+        }
+
+        public static void OnContinue() {
+            int repairCost = (int)Math.Ceiling(ModState.CombatDamage) * DisorderlyWithdrawal.ModConfig.LeopardRepairCostPerDamage;
+            DisorderlyWithdrawal.Logger.LogIfDebug($"Charging player {SimGameState.GetCBillString(repairCost)} for Leopard repairs.");
+
+            SimGameState simGameState = UnityGameInstance.BattleTechGame.Simulation;
+            simGameState.AddFunds(repairCost * -1);
+
+            ModState.CombatDamage = 0;
+        }
+
+    }
+
+    [HarmonyPatch(typeof(SGCaptainsQuartersStatusScreen), "RefreshData")]
+    [HarmonyAfter(new string[] { "de.morphyum.MechMaintenanceByCost", "dZ.Zappo.MonthlyTechAdjustment" })]
+    public static class SGCaptainsQuartersStatusScreen_RefreshData {
+        public static void Postfix(SGCaptainsQuartersStatusScreen __instance, bool showMoraleChange, Transform ___SectionTwoExpensesList) {
+
         }
     }
 }
