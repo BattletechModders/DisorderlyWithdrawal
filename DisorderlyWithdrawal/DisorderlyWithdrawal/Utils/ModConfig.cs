@@ -15,7 +15,7 @@ namespace DisorderlyWithdrawal {
         public int HeavyWingMonthlyCost = 100000;
         public float HeavyWingLeopardDamage = 0.6f;
 
-        public int LeopardRepairCostPerDamage = 10;
+        public int LeopardRepairCostPerDamage = 100;
         
         public override string ToString() {
             return $"Debug:{Debug}";

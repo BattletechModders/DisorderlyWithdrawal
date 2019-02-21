@@ -1,4 +1,5 @@
 ﻿using BattleTech;
+using BattleTech.Framework;
 using BattleTech.UI;
 using Harmony;
 using System;
@@ -55,8 +56,6 @@ namespace DisorderlyWithdrawal.Patches {
             } else {
 
                 int roundsToWait = Helper.RoundsToWaitByAerospace();
-                // TODO: TESTING - REMOVE
-                roundsToWait = 1;
 
                 DisorderlyWithdrawal.Logger.Log($"Player must wait:{roundsToWait} rounds for pickup."); 
 
@@ -226,31 +225,36 @@ namespace DisorderlyWithdrawal.Patches {
         }
     }
 
-    [HarmonyPatch(typeof(AAR_ContractResults_Screen), "FillInData")]
-    public static class AAR_ContractResults_Screen_FillInData {
+    [HarmonyPatch(typeof(AAR_ContractObjectivesWidget), "FillInObjectives")]
+    [HarmonyAfter(new string[] { "de.morphyum.DropCostPerMech" })]
+    public static class AAR_ContractObjectivesWidget_FillInObjectives {
 
-        public static void Postfix(AAR_ContractResults_Screen __instance) {
-            if (ModState.CombatDamage != 0) {
-                int repairCost = (int)Math.Ceiling(ModState.CombatDamage) * DisorderlyWithdrawal.ModConfig.LeopardRepairCostPerDamage;
-                GenericPopupBuilder.Create(GenericPopupType.Info,
-                    $"The Leopard was damaged in the extraction process, and needs to be repaired." +
-                    $"{SimGameState.GetCBillString(repairCost)} will be deducted for repairs."
-                    )
-                    .AddButton("Continue", new Action(OnContinue), true, null)
-                    .Render();
+        static void Prefix(AAR_ContractObjectivesWidget __instance, Contract ___theContract) {
+            int repairCost = (int)Math.Ceiling(ModState.CombatDamage) * DisorderlyWithdrawal.ModConfig.LeopardRepairCostPerDamage;
+            if (repairCost != 0) {
+                DisorderlyWithdrawal.Logger.LogIfDebug($"AAR_COW:FIO adding repair cost objective:{repairCost}");
+                string objectiveLabel = $"LEOPARD REPAIR COSTS: {SimGameState.GetCBillString(repairCost)}";
+                MissionObjectiveResult missionObjectiveResult = new MissionObjectiveResult(objectiveLabel, "7facf07a-626d-4a3b-a1ec-b29a35ff1ac0", false, true, ObjectiveStatus.Succeeded, false);
+                ___theContract.MissionObjectiveResultList.Add(missionObjectiveResult);
+                //Traverse traverse = Traverse.Create(__instance).Method("AddObjective", new Type[] { typeof(MissionObjectiveResult) });
+                //traverse.GetValue(new object[] { missionObjectiveResult });
             }
         }
+    }
 
-        public static void OnContinue() {
+    [HarmonyPatch(typeof(Contract), "CompleteContract")]
+    [HarmonyAfter(new string[] { "de.morphyum.DropCostPerMech", "de.morphyum.PersistentMapClient" })]
+    public static class Contract_CompleteContract {
+
+        static void Postfix(Contract __instance) {
             int repairCost = (int)Math.Ceiling(ModState.CombatDamage) * DisorderlyWithdrawal.ModConfig.LeopardRepairCostPerDamage;
-            DisorderlyWithdrawal.Logger.LogIfDebug($"Charging player {SimGameState.GetCBillString(repairCost)} for Leopard repairs.");
-
-            SimGameState simGameState = UnityGameInstance.BattleTechGame.Simulation;
-            simGameState.AddFunds(repairCost * -1);
-
-            ModState.CombatDamage = 0;
+            if (repairCost != 0) {
+                DisorderlyWithdrawal.Logger.LogIfDebug($"C:CC adding repair costs:{repairCost}");
+                int newMoneyResults = Mathf.FloorToInt(__instance.MoneyResults - repairCost);
+                Traverse traverse = Traverse.Create(__instance).Property("MoneyResults");
+                traverse.SetValue(newMoneyResults);
+            }
         }
-
     }
 
     [HarmonyPatch(typeof(SGCaptainsQuartersStatusScreen), "RefreshData")]
