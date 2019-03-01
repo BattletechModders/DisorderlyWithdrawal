@@ -236,8 +236,6 @@ namespace DisorderlyWithdrawal.Patches {
                 string objectiveLabel = $"LEOPARD REPAIR COSTS: {SimGameState.GetCBillString(repairCost)}";
                 MissionObjectiveResult missionObjectiveResult = new MissionObjectiveResult(objectiveLabel, "7facf07a-626d-4a3b-a1ec-b29a35ff1ac0", false, true, ObjectiveStatus.Succeeded, false);
                 ___theContract.MissionObjectiveResultList.Add(missionObjectiveResult);
-                //Traverse traverse = Traverse.Create(__instance).Method("AddObjective", new Type[] { typeof(MissionObjectiveResult) });
-                //traverse.GetValue(new object[] { missionObjectiveResult });
             }
         }
     }
@@ -260,7 +258,55 @@ namespace DisorderlyWithdrawal.Patches {
     [HarmonyPatch(typeof(SGCaptainsQuartersStatusScreen), "RefreshData")]
     [HarmonyAfter(new string[] { "de.morphyum.MechMaintenanceByCost", "dZ.Zappo.MonthlyTechAdjustment" })]
     public static class SGCaptainsQuartersStatusScreen_RefreshData {
-        public static void Postfix(SGCaptainsQuartersStatusScreen __instance, bool showMoraleChange, Transform ___SectionTwoExpensesList) {
+        public static void Postfix(SGCaptainsQuartersStatusScreen __instance, bool showMoraleChange,
+            Transform ___SectionOneExpensesList, TextMeshProUGUI ___SectionOneExpensesField) {
+
+            SimGameState simGameState = UnityGameInstance.BattleTechGame.Simulation;
+            if (__instance == null || ___SectionOneExpensesList == null || ___SectionOneExpensesField == null || simGameState == null) {
+                DisorderlyWithdrawal.Logger.LogIfDebug($"SGCQSS:RD - skipping");
+                return;
+            } else {
+                DisorderlyWithdrawal.Logger.LogIfDebug($"SGCQSS:RD - entered");
+            }
+
+            // Set the aerospace cost
+            Statistic aerospaceAssets = simGameState.CompanyStats.GetStatistic("AerospaceAssets");
+            int aerospaceSupport = aerospaceAssets != null ? aerospaceAssets.Value<int>() : 0;
+            int aerospaceCost = 0;
+            switch (aerospaceSupport) {
+                case 3:
+                    aerospaceCost = DisorderlyWithdrawal.ModConfig.HeavyWingMonthlyCost;
+                    break;
+                case 2:
+                    aerospaceCost = DisorderlyWithdrawal.ModConfig.MediumWingMonthlyCost;
+                    break;
+                case 1:
+                    aerospaceCost = DisorderlyWithdrawal.ModConfig.LightWingMonthlyCost;
+                    break;
+                default:
+                    aerospaceCost = 0;
+                    break;
+            }
+            string aerospaceCostS = SimGameState.GetCBillString(aerospaceCost);
+            DisorderlyWithdrawal.Logger.LogIfDebug($"SGCQSS:RD - aerospace cost is: {aerospaceCostS}");
+
+            try {
+                Traverse addListLineItemT = Traverse.Create(__instance).Method("AddListLineItem");
+                addListLineItemT.GetValue(new object[] { ___SectionOneExpensesList, "Aerospace", aerospaceCostS });
+                DisorderlyWithdrawal.Logger.LogIfDebug($"SGCQSS:RD - added lineItemParts");
+            } catch (Exception e) {
+                DisorderlyWithdrawal.Logger.LogIfDebug($"SGCQSS:RD - failed to add lineItemParts due to: {e.Message}");
+            }
+
+            string rawSectionOneCosts = ___SectionOneExpensesField.text;
+            string sectionOneCostsS = rawSectionOneCosts.Substring(1);
+            int sectionOneCosts = int.Parse(sectionOneCostsS);
+            DisorderlyWithdrawal.Logger.LogIfDebug($"SGCQSS:RD raw costs:{rawSectionOneCosts} costsS:{sectionOneCostsS} sectionOneCosts:{sectionOneCosts}");
+
+            int newCosts = sectionOneCosts + aerospaceCost;
+            Traverse setFieldT = Traverse.Create(__instance).Method("SetField", new object[] { typeof(TextMeshProUGUI), typeof(string) });
+            setFieldT.GetValue(new object[] { ___SectionOneExpensesField, SimGameState.GetCBillString(newCosts) });
+            DisorderlyWithdrawal.Logger.LogIfDebug($"SGCQSS:RD - updated ");
 
         }
     }
