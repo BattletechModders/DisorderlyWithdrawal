@@ -18,9 +18,9 @@ namespace DisorderlyWithdrawal {
             LogStream = File.AppendText(LogFile);
         }
 
-        public void LogIfDebug(string message) { if (DisorderlyWithdrawal.ModConfig.Debug) { Log("[DBG] " + message); } }
+        public void Debug(string message) { if (Mod.Config.Debug) { Info("[DBG] " + message); } }
 
-        public void Log(string message) {
+        public void Info(string message) {
             string now = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff", System.Globalization.CultureInfo.InvariantCulture);
             LogStream.WriteLine($"{now} - {message}");
             LogStream.Flush();

@@ -5,17 +5,28 @@ using System.Linq;
 using UnityEngine;
 
 namespace DisorderlyWithdrawal {
+
+    public class ExpensesSorter : IComparer<KeyValuePair<string, int>> {
+        public int Compare(KeyValuePair<string, int> x, KeyValuePair<string, int> y) {
+            int cmp = y.Value.CompareTo(x.Value);
+            if (cmp == 0) {
+                cmp = y.Key.CompareTo(x.Key);
+            }
+            return cmp;
+        }
+    }
+
     public static class Helper {
 
         public static int RoundsToWaitByAerospace() {
             SimGameState simGameState = UnityGameInstance.BattleTechGame.Simulation;
             Statistic aerospaceAssets = simGameState.CompanyStats.GetStatistic("AerospaceAssets");
             int aerospaceSupport = aerospaceAssets != null ? aerospaceAssets.Value<int>() : 0;
-            DisorderlyWithdrawal.Logger.Log($"Player has aerospace support:{aerospaceSupport}");
+            Mod.Log.Info($"Player has aerospace support:{aerospaceSupport}");
 
-            int flightTimeRoll = DisorderlyWithdrawal.Random.Next(3, 5);
+            int flightTimeRoll = Mod.Random.Next(3, 5);
             int roundsToWait = Math.Max(0, flightTimeRoll - aerospaceSupport);
-            DisorderlyWithdrawal.Logger.Log($"Aerospace support gives {roundsToWait} rounds to wait.");
+            Mod.Log.Info($"Aerospace support gives {roundsToWait} rounds to wait.");
 
             return roundsToWait;
         }
@@ -25,33 +36,33 @@ namespace DisorderlyWithdrawal {
         public static float CalculateCombatDamage() {
             CombatGameState Combat = UnityGameInstance.BattleTechGame.Combat;
 
-            DisorderlyWithdrawal.Logger.LogIfDebug($"Finding player units centroid");
+            Mod.Log.Debug($"Finding player units centroid");
             List<AbstractActor> playerUnits  = Combat.LocalPlayerTeam.units;
             List<Vector3> playerPositions = playerUnits.Select(aa => aa.CurrentPosition).ToList();
             Vector3 playerUnitsCentroid = FindCentroid(playerPositions);
 
-            DisorderlyWithdrawal.Logger.LogIfDebug($"Finding enemy units");
+            Mod.Log.Debug($"Finding enemy units");
             List<AbstractActor> enemyUnits = Combat.AllEnemies;
             float totalDamage = 0.0f;
             foreach (AbstractActor enemy in enemyUnits) {
                 float enemyDamage = 0.0f;
                 float distance = Vector3.Distance(playerUnitsCentroid, enemy.CurrentPosition);
-                DisorderlyWithdrawal.Logger.LogIfDebug($"Enemy:{enemy.DisplayName}_{enemy?.GetPilot()?.Name} is distance:{distance}m " +
+                Mod.Log.Debug($"Enemy:{enemy.DisplayName}_{enemy?.GetPilot()?.Name} is distance:{distance}m " +
                     $"at position:{enemy.CurrentPosition} from centroid:{playerUnitsCentroid}");
 
                 foreach (Weapon weapon in enemy.Weapons) {
                     if (weapon.MaxRange >= distance) {
-                        DisorderlyWithdrawal.Logger.LogIfDebug($"Enemy:{enemy.DisplayName}_{enemy?.GetPilot()?.Name} " +
+                        Mod.Log.Debug($"Enemy:{enemy.DisplayName}_{enemy?.GetPilot()?.Name} " +
                             $"has weapon:{weapon.Name} in range. Adding {weapon.DamagePerShot} damage for {weapon.ShotsWhenFired} shots.");
                         enemyDamage += (weapon.DamagePerShot * weapon.ShotsWhenFired);
                     }
                 }
 
-                DisorderlyWithdrawal.Logger.LogIfDebug($"Total damage from enemy:{enemy.DisplayName}_{enemy?.GetPilot()?.Name} is {enemyDamage}.");
+                Mod.Log.Debug($"Total damage from enemy:{enemy.DisplayName}_{enemy?.GetPilot()?.Name} is {enemyDamage}.");
                 totalDamage += enemyDamage;
             }
 
-            DisorderlyWithdrawal.Logger.LogIfDebug($"Total damage from all enemies is:{totalDamage}");
+            Mod.Log.Debug($"Total damage from all enemies is:{totalDamage}");
             return totalDamage;
         }
 
@@ -70,23 +81,23 @@ namespace DisorderlyWithdrawal {
                 float x_1 = points[i + 1].x;
                 float y_0 = points[i].y;
                 float y_1 = points[i + 1].y;
-                DisorderlyWithdrawal.Logger.LogIfDebug($"   point{i} = {x_0}, {y_0}");
-                DisorderlyWithdrawal.Logger.LogIfDebug($"   point{i + 1} = {x_1}, {y_1}");
+                Mod.Log.Debug($"   point{i} = {x_0}, {y_0}");
+                Mod.Log.Debug($"   point{i + 1} = {x_1}, {y_1}");
 
                 xSignSum += Math.Sign(x_0);
                 ySignSum += Math.Sign(y_0);
 
                 float secondFactor = (x_0 * y_1) - (x_1 * y_0);
-                DisorderlyWithdrawal.Logger.LogIfDebug($"  secondFactor = {secondFactor} = ({x_0} * {y_1}) - ({x_1} * {y_0})");
+                Mod.Log.Debug($"  secondFactor = {secondFactor} = ({x_0} * {y_1}) - ({x_1} * {y_0})");
 
                 float resultX = (x_0 + x_1) * secondFactor;
 
                 float resultY = (y_0 + y_1) * secondFactor;
-                DisorderlyWithdrawal.Logger.LogIfDebug($" centroidX:{centroidX} + resultX:{resultX}, centroidY:{centroidY} + resultY:{resultY}");
+                Mod.Log.Debug($" centroidX:{centroidX} + resultX:{resultX}, centroidY:{centroidY} + resultY:{resultY}");
 
                 centroidX += resultX;
                 centroidY += resultY;
-                DisorderlyWithdrawal.Logger.LogIfDebug($"  After addition centroidX:{centroidX}, centroidY:{centroidY}");
+                Mod.Log.Debug($"  After addition centroidX:{centroidX}, centroidY:{centroidY}");
             }
 
             float zPosAverage = actorPositions.Select(v => v.z).Sum();
@@ -117,7 +128,7 @@ namespace DisorderlyWithdrawal {
                 centroidY = centroidY * -1;
             }
 
-            DisorderlyWithdrawal.Logger.LogIfDebug($"Centroid calculated as position (x:{centroidX}, y:{centroidY}, z:{zPosAverage})");
+            Mod.Log.Debug($"Centroid calculated as position (x:{centroidX}, y:{centroidY}, z:{zPosAverage})");
             return new Vector3(centroidX, centroidY, zPosAverage);
         }
 
@@ -132,7 +143,7 @@ namespace DisorderlyWithdrawal {
                     (points[i + 1].y + points[i].y) / 2;
             }
 
-            DisorderlyWithdrawal.Logger.LogIfDebug($"Points area calculated as 2d polygon is:{area}");
+            Mod.Log.Debug($"Points area calculated as 2d polygon is:{area}");
             return area;
         }
 

@@ -5,39 +5,47 @@ using System.Diagnostics;
 using System.Reflection;
 
 namespace DisorderlyWithdrawal {
-    public class DisorderlyWithdrawal {
+
+    public class Mod {
 
         public const string HarmonyPackage = "us.frostraptor.DisorderlyWithdrawal";
+        public const string LogName = "disorderly_withdrawal";
 
-        public static Logger Logger;
+        public static Logger Log;
         public static string ModDir;
-        public static ModConfig ModConfig;
+        public static ModConfig Config;
 
         public static readonly Random Random = new Random();
 
         public static void Init(string modDirectory, string settingsJSON) {
             ModDir = modDirectory;
 
-            Exception settingsE;
+            Exception settingsE = null;
             try {
-                DisorderlyWithdrawal.ModConfig = JsonConvert.DeserializeObject<ModConfig>(settingsJSON);
+                Mod.Config = JsonConvert.DeserializeObject<ModConfig>(settingsJSON);
             } catch (Exception e) {
                 settingsE = e;
-                DisorderlyWithdrawal.ModConfig = new ModConfig();
+                Mod.Config = new ModConfig();
             }
 
-            Logger = new Logger(modDirectory, "disorderly_withdrawal");
+            Log = new Logger(modDirectory, LogName);
 
             Assembly asm = Assembly.GetExecutingAssembly();
-            FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(asm?.Location);
-            Logger.Log($"Assembly version: {fvi?.ProductVersion}");
+            FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(asm.Location);
+            Log.Info($"Assembly version: {fvi.ProductVersion}");
 
-            Logger.LogIfDebug($"ModDir is:{modDirectory}");
-            Logger.LogIfDebug($"mod.json settings are:({settingsJSON})");
-            Logger.Log($"mergedConfig is:{DisorderlyWithdrawal.ModConfig}");
+            Log.Debug($"ModDir is:{modDirectory}");
+            Log.Debug($"mod.json settings are:({settingsJSON})");
+            Mod.Config.LogConfig();
+
+            if (settingsE != null) {
+                Log.Info($"ERROR reading settings file! Error was: {settingsE}");
+            } else {
+                Log.Info($"INFO: No errors reading settings file.");
+            }
 
             var harmony = HarmonyInstance.Create(HarmonyPackage);
-            harmony.PatchAll(asm);
+            harmony.PatchAll(Assembly.GetExecutingAssembly());
         }
     }
 }

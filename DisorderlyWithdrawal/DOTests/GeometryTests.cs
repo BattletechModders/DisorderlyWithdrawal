@@ -10,7 +10,7 @@ namespace DOTests {
 
         [OneTimeSetUp]
         public void RunBeforeAnyTests() {
-            DisorderlyWithdrawal.DisorderlyWithdrawal.Init(TestContext.CurrentContext.TestDirectory, "{ 'debug': true }");
+            DisorderlyWithdrawal.Mod.Init(TestContext.CurrentContext.TestDirectory, "{ 'debug': true }");
         }
 
         [Test]

@@ -6,6 +6,8 @@ namespace DisorderlyWithdrawal {
         // If true, extra logging will be used
         public bool Debug = false;
 
+        public int LeopardRepairCostPerDamage = 100;
+
         public int LightWingMonthlyCost = 50000;
         public float LightWingLeopardDamage = 0.0f;
 
@@ -15,10 +17,14 @@ namespace DisorderlyWithdrawal {
         public int HeavyWingMonthlyCost = 100000;
         public float HeavyWingLeopardDamage = 0.6f;
 
-        public int LeopardRepairCostPerDamage = 100;
-        
-        public override string ToString() {
-            return $"Debug:{Debug}";
+        public void LogConfig() {
+            Mod.Log.Info("=== MOD CONFIG BEGIN ===");
+            Mod.Log.Info($"  DEBUG: {this.Debug}");
+            Mod.Log.Info($"  LeopardRepairCostPerDamage:{LeopardRepairCostPerDamage}");
+            Mod.Log.Info($"  Light Wing  - MonthlyCost:x{LightWingMonthlyCost} LeopardDamage:{LightWingLeopardDamage}");
+            Mod.Log.Info($"  Medium Wing - MonthlyCost:x{MediumWingMonthlyCost} LeopardDamage:{MediumWingLeopardDamage}");
+            Mod.Log.Info($"  Heavy Wing  - MonthlyCost:x{HeavyWingMonthlyCost} LeopardDamage:{HeavyWingLeopardDamage}");
+            Mod.Log.Info("=== MOD CONFIG END ===");
         }
     }
 }
