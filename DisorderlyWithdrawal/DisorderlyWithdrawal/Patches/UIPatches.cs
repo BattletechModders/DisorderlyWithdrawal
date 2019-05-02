@@ -14,47 +14,57 @@ namespace DisorderlyWithdrawal.Patches {
     [HarmonyAfter(new string[] { "de.morphyum.MechMaintenanceByCost", "dZ.Zappo.MonthlyTechAdjustment" })]
     public static class SGCaptainsQuartersStatusScreen_RefreshData {
         public static void Postfix(SGCaptainsQuartersStatusScreen __instance, bool showMoraleChange,
-            Transform ___SectionOneExpensesList, TextMeshProUGUI ___SectionOneExpensesField) {
+            Transform ___SectionOneExpensesList, TextMeshProUGUI ___SectionOneExpensesField, 
+            SimGameState ___simState) {
 
             SimGameState simGameState = UnityGameInstance.BattleTechGame.Simulation;
             if (__instance == null || ___SectionOneExpensesList == null || ___SectionOneExpensesField == null || simGameState == null) {
                 Mod.Log.Debug($"SGCQSS:RD - skipping");
                 return;
-            } else {
-                Mod.Log.Debug($"SGCQSS:RD - entered");
             }
 
-            // Set the aerospace cost
+            // Determine the level of aerospace support
             Statistic aerospaceAssets = simGameState.CompanyStats.GetStatistic("AerospaceAssets");
-            int aerospaceSupport = aerospaceAssets != null ? aerospaceAssets.Value<int>() : 0;
+            int aerospaceSupport = aerospaceAssets != null ? aerospaceAssets.Value<int>() : 0;                         
+
+            if (aerospaceSupport == 0) {
+                Mod.Log.Debug($"SGCQSS:RD - no aerospace support configured, skipping.");
+                return; 
+            }
+
+            Mod.Log.Info($"SGCQSS:RD - Parsing current keys.");
+            List<KeyValuePair<string, int>> currentKeys = GetCurrentKeys(___SectionOneExpensesList, ___simState);
+            currentKeys.Sort(new ExpensesSorter());
+
+            Mod.Log.Info($"SGCQSS:RD - Clearing items");
+            ClearListLineItems(___SectionOneExpensesList, ___simState);
+
             int aerospaceCost = 0;
             switch (aerospaceSupport) {
                 case 3:
-                    aerospaceCost = Mod.Config.HeavyWingMonthlyCost;
+                    currentKeys.Add(new KeyValuePair<string, int>($"Aerospace: Heavy Wing", Mod.Config.HeavyWingMonthlyCost));
                     break;
                 case 2:
-                    aerospaceCost = Mod.Config.MediumWingMonthlyCost;
+                    currentKeys.Add(new KeyValuePair<string, int>($"Aerospace: Medium Wing", Mod.Config.MediumWingMonthlyCost));
                     break;
                 case 1:
-                    aerospaceCost = Mod.Config.LightWingMonthlyCost;
-                    break;
-                default:
-                    aerospaceCost = 0;
+                    currentKeys.Add(new KeyValuePair<string, int>($"Aerospace: Light Wing", Mod.Config.LightWingMonthlyCost));
                     break;
             }
-            string aerospaceCostS = SimGameState.GetCBillString(aerospaceCost);
-            Mod.Log.Debug($"SGCQSS:RD - aerospace cost is: {aerospaceCostS}");
 
+            Mod.Log.Info($"SGCQSS:RD - Adding listLineItems");
             try {
-                Traverse addListLineItemT = Traverse.Create(__instance).Method("AddListLineItem");
-                addListLineItemT.GetValue(new object[] { ___SectionOneExpensesList, "Aerospace", aerospaceCostS });
-                Mod.Log.Debug($"SGCQSS:RD - added lineItemParts");
+                foreach (KeyValuePair<string, int> kvp in currentKeys) {
+                    Mod.Log.Info($"SGCQSS:RD - Adding key:{kvp.Key} value:{kvp.Value}");
+                    AddListLineItem(___SectionOneExpensesList, ___simState, kvp.Key, SimGameState.GetCBillString(kvp.Value));
+                }
             } catch (Exception e) {
-                Mod.Log.Debug($"SGCQSS:RD - failed to add lineItemParts due to: {e.Message}");
+                Mod.Log.Info($"SGCQSS:RD - failed to add lineItemParts due to: {e.Message}");
             }
 
+            // Update summary costs
             string rawSectionOneCosts = ___SectionOneExpensesField.text;
-            string sectionOneCostsS = rawSectionOneCosts.Substring(1);
+            string sectionOneCostsS = Regex.Replace(rawSectionOneCosts, @"[^\d]", "");
             int sectionOneCosts = int.Parse(sectionOneCostsS);
             Mod.Log.Debug($"SGCQSS:RD raw costs:{rawSectionOneCosts} costsS:{sectionOneCostsS} sectionOneCosts:{sectionOneCosts}");
 
@@ -63,47 +73,6 @@ namespace DisorderlyWithdrawal.Patches {
             setFieldT.GetValue(new object[] { ___SectionOneExpensesField, SimGameState.GetCBillString(newCosts) });
             Mod.Log.Debug($"SGCQSS:RD - updated ");
 
-        }
-    }
-
-    [HarmonyPatch(typeof(SGCaptainsQuartersStatusScreen), "RefreshData")]
-    [HarmonyAfter(new string[] { "de.morphyum.MechMaintenanceByCost", "dZ.Zappo.MonthlyTechAdjustment" })]
-    public static class SGCaptainsQuartersStatusScreen_RefreshData {
-        public static void Postfix(SGCaptainsQuartersStatusScreen __instance, bool showMoraleChange,
-            Transform ___SectionOneExpensesList, TextMeshProUGUI ___SectionOneExpensesField, SimGameState ___simState) {
-
-            SimGameState simGameState = UnityGameInstance.BattleTechGame.Simulation;
-            if (__instance == null || ___SectionOneExpensesList == null || ___SectionOneExpensesField == null || simGameState == null) {
-                Mod.Log.Info($"SGCQSS:RD - skipping");
-                return;
-            }
-
-            Mod.Log.Info($"SGCQSS:RD - entered. Parsing current keys.");
-            List<KeyValuePair<string, int>> currentKeys = GetCurrentKeys(___SectionOneExpensesList, ___simState);
-
-            double gearInventorySize = Helper.GetGearInventorySize(___simState);
-            int gearStorageCost = Helper.CalculateGearCost(___simState, gearInventorySize);
-            currentKeys.Add(new KeyValuePair<string, int>($"Gear ({gearInventorySize} units)", gearStorageCost));
-
-            double mechPartsTonnage = Helper.GetMechPartsTonnage(___simState);
-            int mechPartsStorageCost = Helper.CalculateMechPartsCost(___simState, mechPartsTonnage);
-            currentKeys.Add(new KeyValuePair<string, int>($"Mech Parts ({mechPartsTonnage} tons)", mechPartsStorageCost));
-
-            currentKeys.Sort(new ExpensesSorter());
-
-            Mod.Log.Info($"SGCQSS:RD - Clearing items");
-            ClearListLineItems(___SectionOneExpensesList, ___simState);
-
-            Mod.Log.Info($"SGCQSS:RD - Adding listLineItems");
-            try {
-                foreach (KeyValuePair<string, int> kvp in currentKeys) {
-                    Mod.Log.Info($"SGCQSS:RD - Adding key:{kvp.Key} value:{kvp.Value}");
-                    AddListLineItem(___SectionOneExpensesList, ___simState, kvp.Key, SimGameState.GetCBillString(kvp.Value));
-                }
-
-            } catch (Exception e) {
-                Mod.Log.Info($"SGCQSS:RD - failed to add lineItemParts due to: {e.Message}");
-            }
         }
 
         public static List<KeyValuePair<string, int>> GetCurrentKeys(Transform container, SimGameState sgs) {
@@ -171,4 +140,5 @@ namespace DisorderlyWithdrawal.Patches {
             }
         }
     }
+
 }
