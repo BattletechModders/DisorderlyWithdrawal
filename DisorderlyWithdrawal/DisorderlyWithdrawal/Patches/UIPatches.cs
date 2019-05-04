@@ -11,7 +11,7 @@ using UnityEngine;
 namespace DisorderlyWithdrawal.Patches {
     
     [HarmonyPatch(typeof(SGCaptainsQuartersStatusScreen), "RefreshData")]
-    [HarmonyAfter(new string[] { "de.morphyum.MechMaintenanceByCost", "dZ.Zappo.MonthlyTechAdjustment" })]
+    [HarmonyAfter(new string[] { "dZ.Zappo.MonthlyTechAdjustment", "us.frostraptor.IttyBittyLivingSpace" })]
     public static class SGCaptainsQuartersStatusScreen_RefreshData {
         public static void Postfix(SGCaptainsQuartersStatusScreen __instance, bool showMoraleChange,
             Transform ___SectionOneExpensesList, TextMeshProUGUI ___SectionOneExpensesField, 
@@ -25,37 +25,41 @@ namespace DisorderlyWithdrawal.Patches {
 
             // Determine the level of aerospace support
             Statistic aerospaceAssets = simGameState.CompanyStats.GetStatistic("AerospaceAssets");
-            int aerospaceSupport = aerospaceAssets != null ? aerospaceAssets.Value<int>() : 0;                         
+            int aerospaceSupport = aerospaceAssets != null ? aerospaceAssets.Value<int>() : 0;
 
             if (aerospaceSupport == 0) {
                 Mod.Log.Debug($"SGCQSS:RD - no aerospace support configured, skipping.");
-                return; 
+                return;
             }
 
-            Mod.Log.Info($"SGCQSS:RD - Parsing current keys.");
+            Mod.Log.Info($"SGCQSS:RD - entered. Parsing current keys.");
             List<KeyValuePair<string, int>> currentKeys = GetCurrentKeys(___SectionOneExpensesList, ___simState);
+            int aerospaceCost = 0;
+            switch (aerospaceSupport) {
+                case 3:
+                    aerospaceCost = Mod.Config.HeavyWingMonthlyCost;
+                    currentKeys.Add(new KeyValuePair<string, int>($"Aerospace: Heavy Wing", Mod.Config.HeavyWingMonthlyCost));
+                    break;
+                case 2:
+                    aerospaceCost = Mod.Config.MediumWingMonthlyCost;
+                    currentKeys.Add(new KeyValuePair<string, int>($"Aerospace: Medium Wing", Mod.Config.MediumWingMonthlyCost));
+                    break;
+                case 1:
+                    aerospaceCost = Mod.Config.LightWingMonthlyCost;
+                    currentKeys.Add(new KeyValuePair<string, int>($"Aerospace: Light Wing", Mod.Config.LightWingMonthlyCost));
+                    break;
+            }
             currentKeys.Sort(new ExpensesSorter());
 
             Mod.Log.Info($"SGCQSS:RD - Clearing items");
             ClearListLineItems(___SectionOneExpensesList, ___simState);
 
-            int aerospaceCost = 0;
-            switch (aerospaceSupport) {
-                case 3:
-                    currentKeys.Add(new KeyValuePair<string, int>($"Aerospace: Heavy Wing", Mod.Config.HeavyWingMonthlyCost));
-                    break;
-                case 2:
-                    currentKeys.Add(new KeyValuePair<string, int>($"Aerospace: Medium Wing", Mod.Config.MediumWingMonthlyCost));
-                    break;
-                case 1:
-                    currentKeys.Add(new KeyValuePair<string, int>($"Aerospace: Light Wing", Mod.Config.LightWingMonthlyCost));
-                    break;
-            }
-
             Mod.Log.Info($"SGCQSS:RD - Adding listLineItems");
+            int totalCost = 0;
             try {
                 foreach (KeyValuePair<string, int> kvp in currentKeys) {
                     Mod.Log.Info($"SGCQSS:RD - Adding key:{kvp.Key} value:{kvp.Value}");
+                    totalCost += kvp.Value;
                     AddListLineItem(___SectionOneExpensesList, ___simState, kvp.Key, SimGameState.GetCBillString(kvp.Value));
                 }
             } catch (Exception e) {
@@ -63,17 +67,18 @@ namespace DisorderlyWithdrawal.Patches {
             }
 
             // Update summary costs
-            string rawSectionOneCosts = ___SectionOneExpensesField.text;
-            string sectionOneCostsS = Regex.Replace(rawSectionOneCosts, @"[^\d]", "");
-            int sectionOneCosts = int.Parse(sectionOneCostsS);
-            Mod.Log.Debug($"SGCQSS:RD raw costs:{rawSectionOneCosts} costsS:{sectionOneCostsS} sectionOneCosts:{sectionOneCosts}");
+            int newCosts = totalCost;
+            string newCostsS = SimGameState.GetCBillString(newCosts);
+            Mod.Log.Debug($"SGCQSS:RD - total:{newCosts}");
 
-            int newCosts = sectionOneCosts + aerospaceCost;
-            Traverse setFieldT = Traverse.Create(__instance).Method("SetField", new object[] { typeof(TextMeshProUGUI), typeof(string) });
-            setFieldT.GetValue(new object[] { ___SectionOneExpensesField, SimGameState.GetCBillString(newCosts) });
-            Mod.Log.Debug($"SGCQSS:RD - updated ");
-
+            try {
+                ___SectionOneExpensesField.SetText(SimGameState.GetCBillString(newCosts));
+                Mod.Log.Debug($"SGCQSS:RD - updated ");
+            } catch (Exception e) {
+                Mod.Log.Info($"SGCQSS:RD - failed to update summary costs section due to: {e.Message}");
+            }
         }
+
 
         public static List<KeyValuePair<string, int>> GetCurrentKeys(Transform container, SimGameState sgs) {
 
