@@ -3,8 +3,11 @@ namespace DisorderlyWithdrawal {
 
     public class ModConfig {
 
-        // If true, extra logging will be used
+        // If true, troubleshooting logging will be enabled
         public bool Debug = false;
+
+        // If true, all logging will be enabled
+        public bool Trace = false;
 
         public int LeopardRepairCostPerDamage = 100;
 

@@ -1,4 +1,5 @@
 ﻿using BattleTech;
+using BattleTech.Framework;
 using BattleTech.UI;
 using Harmony;
 using System;
@@ -9,11 +10,41 @@ using TMPro;
 using UnityEngine;
 
 namespace DisorderlyWithdrawal.Patches {
-    
+
+    [HarmonyPatch(typeof(SimGameState), "GetExpenditures")]
+    [HarmonyPatch(new Type[] { typeof(EconomyScale), typeof(bool) })]
+    [HarmonyAfter(new string[] { "de.morphyum.MechMaintenanceByCost", "us.frostraptor.IttyBittyLivingSpace" })]
+    public static class SimGameState_GetExpenditures {
+        public static void Postfix(SimGameState __instance, ref int __result, EconomyScale expenditureLevel, bool proRate) {
+            Mod.Log.Trace($"SGS:GE entered with {__result}");
+
+            Statistic aerospaceAssets = __instance.CompanyStats.GetStatistic("AerospaceAssets");
+            int aerospaceSupport = aerospaceAssets != null ? aerospaceAssets.Value<int>() : 0;
+
+            switch (aerospaceSupport) {
+                case 3:
+                    __result = __result + Mod.Config.HeavyWingMonthlyCost;
+                    Mod.Log.Trace($"Charging player for a heavy wing, result = {__result}.");
+                    break;
+                case 2:
+                    __result = __result + Mod.Config.MediumWingMonthlyCost;
+                    Mod.Log.Trace($"Charging player for a medium wing, result = {__result}.");
+                    break;
+                case 1:
+                    __result = __result + Mod.Config.LightWingMonthlyCost;
+                    Mod.Log.Trace($"Charging player for a light wing, result = {__result}.");
+                    break;
+                default:
+                    Mod.Log.Trace($"Charging player for no aerospace, result = {__result}");
+                    break;
+            }
+        }
+    }
+
     [HarmonyPatch(typeof(SGCaptainsQuartersStatusScreen), "RefreshData")]
-    [HarmonyAfter(new string[] { "dZ.Zappo.MonthlyTechAdjustment", "us.frostraptor.IttyBittyLivingSpace" })]
+    [HarmonyAfter(new string[] { "dZ.Zappo.MonthlyTechAdjustment", "us.frostraptor.IttyBittyLivingSpace", "us.frostraptor.IttyBittyLivingSpace" })]
     public static class SGCaptainsQuartersStatusScreen_RefreshData {
-        public static void Postfix(SGCaptainsQuartersStatusScreen __instance, bool showMoraleChange,
+        public static void Postfix(SGCaptainsQuartersStatusScreen __instance, EconomyScale expenditureLevel, bool showMoraleChange,
             Transform ___SectionOneExpensesList, TextMeshProUGUI ___SectionOneExpensesField, 
             SimGameState ___simState) {
 
@@ -22,6 +53,9 @@ namespace DisorderlyWithdrawal.Patches {
                 Mod.Log.Debug($"SGCQSS:RD - skipping");
                 return;
             }
+
+            // TODO: Add this to mech parts maybe?
+            //float expenditureCostModifier = simGameState.GetExpenditureCostModifier(expenditureLevel);
 
             // Determine the level of aerospace support
             Statistic aerospaceAssets = simGameState.CompanyStats.GetStatistic("AerospaceAssets");
@@ -78,7 +112,6 @@ namespace DisorderlyWithdrawal.Patches {
                 Mod.Log.Info($"SGCQSS:RD - failed to update summary costs section due to: {e.Message}");
             }
         }
-
 
         public static List<KeyValuePair<string, int>> GetCurrentKeys(Transform container, SimGameState sgs) {
 
@@ -142,6 +175,36 @@ namespace DisorderlyWithdrawal.Patches {
                 GameObject gameObject = list[0];
                 sgs.DataManager.PoolGameObject("uixPrfPanl_captainsQuarters_quarterlyReportLineItem-element", gameObject);
                 list.Remove(gameObject);
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(AAR_ContractObjectivesWidget), "FillInObjectives")]
+    [HarmonyAfter(new string[] { "de.morphyum.DropCostPerMech" })]
+    public static class AAR_ContractObjectivesWidget_FillInObjectives {
+
+        static void Prefix(AAR_ContractObjectivesWidget __instance, Contract ___theContract) {
+            int repairCost = (int)Math.Ceiling(State.CombatDamage) * Mod.Config.LeopardRepairCostPerDamage;
+            if (repairCost != 0) {
+                Mod.Log.Debug($"AAR_COW:FIO adding repair cost objective:{repairCost}");
+                string objectiveLabel = $"LEOPARD REPAIR COSTS: {SimGameState.GetCBillString(repairCost)}";
+                MissionObjectiveResult missionObjectiveResult = new MissionObjectiveResult(objectiveLabel, "7facf07a-626d-4a3b-a1ec-b29a35ff1ac0", false, true, ObjectiveStatus.Succeeded, false);
+                ___theContract.MissionObjectiveResultList.Add(missionObjectiveResult);
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(Contract), "CompleteContract")]
+    [HarmonyAfter(new string[] { "de.morphyum.DropCostPerMech", "de.morphyum.PersistentMapClient" })]
+    public static class Contract_CompleteContract {
+
+        static void Postfix(Contract __instance) {
+            int repairCost = (int)Math.Ceiling(State.CombatDamage) * Mod.Config.LeopardRepairCostPerDamage;
+            if (repairCost != 0) {
+                Mod.Log.Debug($"C:CC adding repair costs:{repairCost}");
+                int newMoneyResults = Mathf.FloorToInt(__instance.MoneyResults - repairCost);
+                Traverse traverse = Traverse.Create(__instance).Property("MoneyResults");
+                traverse.SetValue(newMoneyResults);
             }
         }
     }
