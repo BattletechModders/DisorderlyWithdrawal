@@ -54,7 +54,7 @@ namespace DisorderlyWithdrawal.Patches {
         public static bool Prefix(CombatHUDRetreatEscMenu __instance, CombatGameState ___Combat, CombatHUD ___HUD) {
             Mod.Log.Trace("CHUDREM:ORC entered");
 
-            if (___Combat == null || ___Combat.ActiveContract.IsArenaSkirmish) {
+            if (___Combat == null || ___Combat.ActiveContract.ContractTypeValue.IsSkirmish) {
                 return true;
             } else {
 
@@ -76,7 +76,7 @@ namespace DisorderlyWithdrawal.Patches {
                         State.RetreatButtonText = textGO.GetComponent<TextMeshProUGUI>();
                     }
 
-                    State.RetreatButtonText.SetText($"In { roundsToWait } Rounds", new object[] { });
+                    State.RetreatButtonText.SetText($"In { roundsToWait } Rounds");
 
                     GenericPopupBuilder genericPopupBuilder =
                         GenericPopupBuilder.Create(GenericPopupType.Info,
@@ -113,7 +113,7 @@ namespace DisorderlyWithdrawal.Patches {
                     __instance.RetreatButton.SetState(ButtonState.Disabled, false);
                     State.RetreatButtonText.fontSize = 24;
                     State.RetreatButtonText.color = Color.white;
-                    State.RetreatButtonText.SetText($"In { withdrawIn } Rounds", new object[] { });
+                    State.RetreatButtonText.SetText($"In { withdrawIn } Rounds");
                 } else if (___Combat.TurnDirector.CurrentRound == State.CanWithdrawOnRound) {
                     Mod.Log.Debug($" Can withdraw on this turn. currentRound:{___Combat.TurnDirector.CurrentRound} canWithdrawOn:{State.CanWithdrawOnRound} canApproachOn:{State.CanApproachOnRound}");
 
@@ -122,7 +122,7 @@ namespace DisorderlyWithdrawal.Patches {
                     }
                     State.RetreatButtonText.fontSize = 24;
                     State.RetreatButtonText.color = Color.white;
-                    State.RetreatButtonText.SetText($"Withdraw", new object[] { });
+                    State.RetreatButtonText.SetText($"Withdraw");
                 } else if (State.CanApproachOnRound > ___Combat.TurnDirector.CurrentRound) {
                     int readyIn = State.CanApproachOnRound - ___Combat.TurnDirector.CurrentRound;
                     Mod.Log.Debug($" Turns to ready: {readyIn}  currentRound:{___Combat.TurnDirector.CurrentRound} canWithdrawOn:{State.CanWithdrawOnRound} canApproachOn:{State.CanApproachOnRound}");
@@ -130,7 +130,7 @@ namespace DisorderlyWithdrawal.Patches {
                     __instance.RetreatButton.SetState(ButtonState.Disabled, false);
                     State.RetreatButtonText.fontSize = 24;
                     State.RetreatButtonText.color = Color.white;
-                    State.RetreatButtonText.SetText($"In { readyIn } Rounds", new object[] { });
+                    State.RetreatButtonText.SetText($"In { readyIn } Rounds");
                 }
             }
         }
@@ -153,7 +153,7 @@ namespace DisorderlyWithdrawal.Patches {
                     State.HUD.SelectionHandler.GenericPopup = genericPopupBuilder.Render();
 
                     State.RetreatButton.SetState(ButtonState.Enabled, true);
-                    State.RetreatButtonText.SetText($"Withdraw Now", new object[] { });
+                    State.RetreatButtonText.SetText($"Withdraw Now");
 
                 } else if (round == State.CanApproachOnRound) {
                     State.WithdrawStarted = false;
@@ -161,7 +161,7 @@ namespace DisorderlyWithdrawal.Patches {
                     State.CanWithdrawOnRound = -1;
 
                     State.RetreatButton.SetState(ButtonState.Enabled, false);
-                    State.RetreatButtonText.SetText($"Withdraw", new object[] { });
+                    State.RetreatButtonText.SetText($"Withdraw");
                 }
             }
         }
