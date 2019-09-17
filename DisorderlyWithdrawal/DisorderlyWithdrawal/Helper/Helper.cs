@@ -24,7 +24,21 @@ namespace DisorderlyWithdrawal {
             int aerospaceSupport = aerospaceAssets != null ? aerospaceAssets.Value<int>() : 0;
             Mod.Log.Info($"Player has aerospace support:{aerospaceSupport}");
 
-            int flightTimeRoll = Mod.Random.Next(3, 5);
+            int flightTimeRoll = 0;
+            switch (aerospaceSupport) {
+                case 3:
+                    flightTimeRoll = Mod.Random.Next(Mod.Config.HeavyWingMinRounds, Mod.Config.HeavyWingMaxRounds);
+                    break;
+                case 2:
+                    flightTimeRoll = Mod.Random.Next(Mod.Config.MediumWingMinRounds, Mod.Config.MediumWingMaxRounds);
+                    break;
+                case 1:
+                    flightTimeRoll = Mod.Random.Next(Mod.Config.LightWingMinRounds, Mod.Config.LightWingMaxRounds);
+                    break;
+                default:
+                    flightTimeRoll = Mod.Random.Next(Mod.Config.NoWingMinRounds, Mod.Config.NoWingMaxRounds);
+                    break;
+            }
             int roundsToWait = Math.Max(0, flightTimeRoll - aerospaceSupport);
             Mod.Log.Info($"Aerospace support gives {roundsToWait} rounds to wait.");
 

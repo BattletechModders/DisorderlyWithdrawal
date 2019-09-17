@@ -20,13 +20,25 @@ namespace DisorderlyWithdrawal {
         public int HeavyWingMonthlyCost = 100000;
         public float HeavyWingLeopardDamage = 0.6f;
 
+        public int LightWingMaxRounds = 4;
+        public int LightWingMinRounds = 3;
+
+        public int MediumWingMaxRounds = 3;
+        public int MediumWingMinRounds = 2;
+
+        public int HeavyWingMaxRounds = 2;
+        public int HeavyWingMinRounds = 1;
+
+        public int NoWingMaxRounds = 6;
+        public int NoWingMinRounds = 4;
+
         public void LogConfig() {
             Mod.Log.Info("=== MOD CONFIG BEGIN ===");
             Mod.Log.Info($"  DEBUG: {this.Debug}");
             Mod.Log.Info($"  LeopardRepairCostPerDamage:{LeopardRepairCostPerDamage}");
-            Mod.Log.Info($"  Light Wing  - MonthlyCost:x{LightWingMonthlyCost} LeopardDamage:{LightWingLeopardDamage}");
-            Mod.Log.Info($"  Medium Wing - MonthlyCost:x{MediumWingMonthlyCost} LeopardDamage:{MediumWingLeopardDamage}");
-            Mod.Log.Info($"  Heavy Wing  - MonthlyCost:x{HeavyWingMonthlyCost} LeopardDamage:{HeavyWingLeopardDamage}");
+            Mod.Log.Info($"  Light Wing  - MonthlyCost:x{LightWingMonthlyCost} LeopardDamage:{LightWingLeopardDamage} MaxRounds:{LightWingMaxRounds} MinRounds:{LightWingMinRounds}");
+            Mod.Log.Info($"  Medium Wing - MonthlyCost:x{MediumWingMonthlyCost} LeopardDamage:{MediumWingLeopardDamage} MaxRounds:{MediumWingMaxRounds} MinRounds:{MediumWingMinRounds}");
+            Mod.Log.Info($"  Heavy Wing  - MonthlyCost:x{HeavyWingMonthlyCost} LeopardDamage:{HeavyWingLeopardDamage} MaxRounds:{HeavyWingMaxRounds} MinRounds:{HeavyWingMinRounds}");
             Mod.Log.Info("=== MOD CONFIG END ===");
         }
     }
