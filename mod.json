@@ -1,13 +1,13 @@
 {
     "Name": "DisorderlyWithdrawal",
     "Enabled": true,
-    "Version": "0.4.2",
-    "Description": "Makes hot-withdrawals more dangerous",
+    "Version": "0.5.1",
+    "Description": "Makes hot-withdrawals more realistic",
     "Author": "IceRaptor",
     "Website": "https://github.com/IceRaptor/DisorderlyWithdrawal",
     "Contact": "",
     "DLL": "DisorderlyWithdrawal.dll",
-    "DependsOn" : [ ],
+    "DependsOn" : [ "IRBTModUtils" ],
     "Settings": {
         "Debug" : false,
         "LightWingMonthlyCost" : 50000,

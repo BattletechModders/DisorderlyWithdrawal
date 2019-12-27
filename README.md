@@ -9,6 +9,8 @@ Options:
 * Light Wing: 3-4 turn pickup. 20% Leopard damage. 30,000 maintenance.
 * No Aerospace: 4-5 turn pickup. 100% Leopard damage. 0 maintenance.
 
+This mod requires [https://github.com/iceraptor/IRBTModUtils/]. Grab the latest release of __IRBTModUtils__ and extract it in your Mods/ directory alongside of this mod.
+
 # WIP Features
 - [ ] Delayed withdrawal; from 2-6 turns when you click the withdrawal button before you are picked up
 
