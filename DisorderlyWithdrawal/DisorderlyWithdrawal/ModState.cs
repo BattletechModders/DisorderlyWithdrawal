@@ -1,4 +1,5 @@
-﻿using BattleTech.UI;
+﻿using BattleTech;
+using BattleTech.UI;
 using TMPro;
 
 namespace DisorderlyWithdrawal {
@@ -6,6 +7,7 @@ namespace DisorderlyWithdrawal {
     public static class ModState {
 
         public static bool WithdrawStarted = false;
+        public static bool WithdrawIsAvailable = false;
 
         public static int CanWithdrawOnRound = -1;
         public static int CanApproachOnRound = -1;
@@ -13,12 +15,14 @@ namespace DisorderlyWithdrawal {
         public static HBSDOTweenButton RetreatButton = null;
         public static TextMeshProUGUI RetreatButtonText = null;
         public static CombatHUD HUD = null;
+        public static CombatGameState Combat = null;
 
         public static float CombatDamage = 0f;
 
         public static void Reset() {
             // Reinitialize state
             WithdrawStarted = false;
+            WithdrawIsAvailable = false;
 
             CanWithdrawOnRound = -1;
             CanWithdrawOnRound = -1;
@@ -26,6 +30,7 @@ namespace DisorderlyWithdrawal {
             RetreatButton = null;
             RetreatButtonText = null;
             HUD = null;
+            Combat = null;
 
             CombatDamage = 0f;
         }
