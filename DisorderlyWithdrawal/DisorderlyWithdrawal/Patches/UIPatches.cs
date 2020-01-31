@@ -184,7 +184,7 @@ namespace DisorderlyWithdrawal.Patches {
     public static class AAR_ContractObjectivesWidget_FillInObjectives {
 
         static void Prefix(AAR_ContractObjectivesWidget __instance, Contract ___theContract) {
-            int repairCost = (int)Math.Ceiling(State.CombatDamage) * Mod.Config.LeopardRepairCostPerDamage;
+            int repairCost = (int)Math.Ceiling(ModState.CombatDamage) * Mod.Config.LeopardRepairCostPerDamage;
             if (repairCost != 0) {
                 Mod.Log.Debug($"AAR_COW:FIO adding repair cost objective:{repairCost}");
                 string objectiveLabel = $"LEOPARD REPAIR COSTS: {SimGameState.GetCBillString(repairCost)}";
@@ -199,7 +199,7 @@ namespace DisorderlyWithdrawal.Patches {
     public static class Contract_CompleteContract {
 
         static void Postfix(Contract __instance) {
-            int repairCost = (int)Math.Ceiling(State.CombatDamage) * Mod.Config.LeopardRepairCostPerDamage;
+            int repairCost = (int)Math.Ceiling(ModState.CombatDamage) * Mod.Config.LeopardRepairCostPerDamage;
             if (repairCost != 0) {
                 Mod.Log.Debug($"C:CC adding repair costs:{repairCost}");
                 int newMoneyResults = Mathf.FloorToInt(__instance.MoneyResults - repairCost);

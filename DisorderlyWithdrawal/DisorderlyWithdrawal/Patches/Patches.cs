@@ -13,14 +13,14 @@ namespace DisorderlyWithdrawal.Patches {
         public static bool Prefix(CombatHUDRetreatEscMenu __instance, HBSDOTweenButton ___RetreatButton, CombatGameState ___Combat, CombatHUD ___HUD) {
             Mod.Log.Trace($"CHUDREM:ORBP entered");
 
-            Mod.Log.Debug($"  RetreatButton pressed -> withdrawStarted:{State.WithdrawStarted} " +
-                $"CurrentRound:{___Combat.TurnDirector.CurrentRound} CanWithdrawOn:{State.CanWithdrawOnRound} CanApproachOn:{State.CanApproachOnRound}");
+            Mod.Log.Debug($"  RetreatButton pressed -> withdrawStarted:{ModState.WithdrawStarted} " +
+                $"CurrentRound:{___Combat.TurnDirector.CurrentRound} CanWithdrawOn:{ModState.CanWithdrawOnRound} CanApproachOn:{ModState.CanApproachOnRound}");
 
-            if (State.WithdrawStarted && State.CanWithdrawOnRound == ___Combat.TurnDirector.CurrentRound) {
+            if (ModState.WithdrawStarted && ModState.CanWithdrawOnRound == ___Combat.TurnDirector.CurrentRound) {
                 Mod.Log.Debug($"Checking for combat damage and active enemies");
-                State.CombatDamage = Helper.CalculateCombatDamage();
-                if (State.CombatDamage > 0 && ___Combat.TurnDirector.DoAnyUnitsHaveContactWithEnemy) {
-                    int repairCost = (int)Math.Ceiling(State.CombatDamage) * Mod.Config.LeopardRepairCostPerDamage;
+                ModState.CombatDamage = Helper.CalculateCombatDamage();
+                if (ModState.CombatDamage > 0 && ___Combat.TurnDirector.DoAnyUnitsHaveContactWithEnemy) {
+                    int repairCost = (int)Math.Ceiling(ModState.CombatDamage) * Mod.Config.LeopardRepairCostPerDamage;
                     void withdrawAction() { OnImmediateWithdraw(__instance.IsGoodFaithEffort()); }
                     GenericPopupBuilder builder = GenericPopupBuilder.Create(GenericPopupType.Warning,
                         $"Enemies are within weapons range! If you withdraw now the Leopard will take {SimGameState.GetCBillString(repairCost)} worth of damage.")
@@ -45,7 +45,7 @@ namespace DisorderlyWithdrawal.Patches {
             CombatGameState Combat = UnityGameInstance.BattleTechGame.Combat;
             MissionRetreatMessage message = new MissionRetreatMessage(isGoodFaith);
             Combat.MessageCenter.PublishMessage(message);
-            State.HUD.SelectionHandler.GenericPopup = null;
+            ModState.HUD.SelectionHandler.GenericPopup = null;
         }
     }
 
@@ -62,21 +62,21 @@ namespace DisorderlyWithdrawal.Patches {
                 Mod.Log.Info($"Player must wait:{roundsToWait} rounds for pickup."); 
 
                 if (roundsToWait > 0) {
-                    State.WithdrawStarted = true;
-                    State.CanWithdrawOnRound = ___Combat.TurnDirector.CurrentRound + roundsToWait;
-                    State.CanApproachOnRound = State.CanWithdrawOnRound + Helper.RoundsToWaitByAerospace(); ;
-                    Mod.Log.Info($" Withdraw triggered on round {___Combat.TurnDirector.CurrentRound}. canWithdrawOn:{State.CanWithdrawOnRound}  canApproachOn: {State.CanApproachOnRound}");
+                    ModState.WithdrawStarted = true;
+                    ModState.CanWithdrawOnRound = ___Combat.TurnDirector.CurrentRound + roundsToWait;
+                    ModState.CanApproachOnRound = ModState.CanWithdrawOnRound + Helper.RoundsToWaitByAerospace(); ;
+                    Mod.Log.Info($" Withdraw triggered on round {___Combat.TurnDirector.CurrentRound}. canWithdrawOn:{ModState.CanWithdrawOnRound}  canApproachOn: {ModState.CanApproachOnRound}");
 
-                    State.RetreatButton = __instance.RetreatButton;
-                    State.HUD = ___HUD;
+                    ModState.RetreatButton = __instance.RetreatButton;
+                    ModState.HUD = ___HUD;
 
                     Transform textT = __instance.RetreatButton.gameObject.transform.Find("Text");
                     if (textT != null) {
                         GameObject textGO = textT.gameObject;
-                        State.RetreatButtonText = textGO.GetComponent<TextMeshProUGUI>();
+                        ModState.RetreatButtonText = textGO.GetComponent<TextMeshProUGUI>();
                     }
 
-                    State.RetreatButtonText.SetText($"In { roundsToWait } Rounds");
+                    ModState.RetreatButtonText.SetText($"In { roundsToWait } Rounds");
 
                     GenericPopupBuilder genericPopupBuilder =
                         GenericPopupBuilder.Create(GenericPopupType.Info,
@@ -94,7 +94,7 @@ namespace DisorderlyWithdrawal.Patches {
 
         public static void OnContinue() {
             Mod.Log.Debug($"CHUDREM:ORC OnContinue");
-            State.HUD.SelectionHandler.GenericPopup = null;
+            ModState.HUD.SelectionHandler.GenericPopup = null;
         }
     }
 
@@ -105,32 +105,32 @@ namespace DisorderlyWithdrawal.Patches {
             Mod.Log.Trace("CHUDREM:U entered");
 
             if (!___isArena) {
-                Mod.Log.Debug($" On ESCmenu update -> currentRound:{___Combat.TurnDirector.CurrentRound} canWithdrawOn:{State.CanWithdrawOnRound} canApproachOn:{State.CanApproachOnRound}");
-                if (___Combat.TurnDirector.CurrentRound < State.CanWithdrawOnRound) {
-                    int withdrawIn = State.CanWithdrawOnRound - ___Combat.TurnDirector.CurrentRound;
-                    Mod.Log.Debug($" Turns to withdraw: {withdrawIn}  currentRound:{___Combat.TurnDirector.CurrentRound} canWithdrawOn:{State.CanWithdrawOnRound} canApproachOn:{State.CanApproachOnRound}");
+                Mod.Log.Debug($" On ESCmenu update -> currentRound:{___Combat.TurnDirector.CurrentRound} canWithdrawOn:{ModState.CanWithdrawOnRound} canApproachOn:{ModState.CanApproachOnRound}");
+                if (___Combat.TurnDirector.CurrentRound < ModState.CanWithdrawOnRound) {
+                    int withdrawIn = ModState.CanWithdrawOnRound - ___Combat.TurnDirector.CurrentRound;
+                    Mod.Log.Debug($" Turns to withdraw: {withdrawIn}  currentRound:{___Combat.TurnDirector.CurrentRound} canWithdrawOn:{ModState.CanWithdrawOnRound} canApproachOn:{ModState.CanApproachOnRound}");
 
                     __instance.RetreatButton.SetState(ButtonState.Disabled, false);
-                    State.RetreatButtonText.fontSize = 24;
-                    State.RetreatButtonText.color = Color.white;
-                    State.RetreatButtonText.SetText($"In { withdrawIn } Rounds");
-                } else if (___Combat.TurnDirector.CurrentRound == State.CanWithdrawOnRound) {
-                    Mod.Log.Debug($" Can withdraw on this turn. currentRound:{___Combat.TurnDirector.CurrentRound} canWithdrawOn:{State.CanWithdrawOnRound} canApproachOn:{State.CanApproachOnRound}");
+                    ModState.RetreatButtonText.fontSize = 24;
+                    ModState.RetreatButtonText.color = Color.white;
+                    ModState.RetreatButtonText.SetText($"In { withdrawIn } Rounds");
+                } else if (___Combat.TurnDirector.CurrentRound == ModState.CanWithdrawOnRound) {
+                    Mod.Log.Debug($" Can withdraw on this turn. currentRound:{___Combat.TurnDirector.CurrentRound} canWithdrawOn:{ModState.CanWithdrawOnRound} canApproachOn:{ModState.CanApproachOnRound}");
 
                     if (__instance.RetreatButton.BaseState != ButtonState.Enabled) {
                         __instance.RetreatButton.SetState(ButtonState.Enabled, false);
                     }
-                    State.RetreatButtonText.fontSize = 24;
-                    State.RetreatButtonText.color = Color.white;
-                    State.RetreatButtonText.SetText($"Withdraw");
-                } else if (State.CanApproachOnRound > ___Combat.TurnDirector.CurrentRound) {
-                    int readyIn = State.CanApproachOnRound - ___Combat.TurnDirector.CurrentRound;
-                    Mod.Log.Debug($" Turns to ready: {readyIn}  currentRound:{___Combat.TurnDirector.CurrentRound} canWithdrawOn:{State.CanWithdrawOnRound} canApproachOn:{State.CanApproachOnRound}");
+                    ModState.RetreatButtonText.fontSize = 24;
+                    ModState.RetreatButtonText.color = Color.white;
+                    ModState.RetreatButtonText.SetText($"Withdraw");
+                } else if (ModState.CanApproachOnRound > ___Combat.TurnDirector.CurrentRound) {
+                    int readyIn = ModState.CanApproachOnRound - ___Combat.TurnDirector.CurrentRound;
+                    Mod.Log.Debug($" Turns to ready: {readyIn}  currentRound:{___Combat.TurnDirector.CurrentRound} canWithdrawOn:{ModState.CanWithdrawOnRound} canApproachOn:{ModState.CanApproachOnRound}");
 
                     __instance.RetreatButton.SetState(ButtonState.Disabled, false);
-                    State.RetreatButtonText.fontSize = 24;
-                    State.RetreatButtonText.color = Color.white;
-                    State.RetreatButtonText.SetText($"In { readyIn } Rounds");
+                    ModState.RetreatButtonText.fontSize = 24;
+                    ModState.RetreatButtonText.color = Color.white;
+                    ModState.RetreatButtonText.SetText($"In { readyIn } Rounds");
                 }
             }
         }
@@ -140,35 +140,35 @@ namespace DisorderlyWithdrawal.Patches {
     public static class TurnDirector_BeginNewRound {
         static void Postfix(TurnDirector __instance, int round) {
             Mod.Log.Trace("TD:BNR entered");
-            Mod.Log.Debug($" OnNewRound -> withdrawStarted:{State.WithdrawStarted} canWithdrawOn:{State.CanWithdrawOnRound}");
+            Mod.Log.Debug($" OnNewRound -> withdrawStarted:{ModState.WithdrawStarted} canWithdrawOn:{ModState.CanWithdrawOnRound}");
 
-            if (State.WithdrawStarted) {
-                if (round == State.CanWithdrawOnRound) {
-                    int readyIn = State.CanApproachOnRound - round;
+            if (ModState.WithdrawStarted) {
+                if (round == ModState.CanWithdrawOnRound) {
+                    int readyIn = ModState.CanApproachOnRound - round;
                     GenericPopupBuilder genericPopupBuilder =
                         GenericPopupBuilder.Create(GenericPopupType.Info,
                         $"Sumire is overhead. If you don't withdraw on this round, she will retreat. She will be unavailable for another {readyIn} rounds!")
                         .AddButton("Continue", new Action(OnContinue), true, null);
                     genericPopupBuilder.IsNestedPopupWithBuiltInFade = true;
-                    State.HUD.SelectionHandler.GenericPopup = genericPopupBuilder.Render();
+                    ModState.HUD.SelectionHandler.GenericPopup = genericPopupBuilder.Render();
 
-                    State.RetreatButton.SetState(ButtonState.Enabled, true);
-                    State.RetreatButtonText.SetText($"Withdraw Now");
+                    ModState.RetreatButton.SetState(ButtonState.Enabled, true);
+                    ModState.RetreatButtonText.SetText($"Withdraw Now");
 
-                } else if (round == State.CanApproachOnRound) {
-                    State.WithdrawStarted = false;
-                    State.CanApproachOnRound = -1;
-                    State.CanWithdrawOnRound = -1;
+                } else if (round == ModState.CanApproachOnRound) {
+                    ModState.WithdrawStarted = false;
+                    ModState.CanApproachOnRound = -1;
+                    ModState.CanWithdrawOnRound = -1;
 
-                    State.RetreatButton.SetState(ButtonState.Enabled, false);
-                    State.RetreatButtonText.SetText($"Withdraw");
+                    ModState.RetreatButton.SetState(ButtonState.Enabled, false);
+                    ModState.RetreatButtonText.SetText($"Withdraw");
                 }
             }
         }
 
         public static void OnContinue() {
             Mod.Log.Debug($"TD:BNR OnContinue");
-            State.HUD.SelectionHandler.GenericPopup = null;
+            ModState.HUD.SelectionHandler.GenericPopup = null;
         }
     }
 
@@ -177,7 +177,7 @@ namespace DisorderlyWithdrawal.Patches {
         static void Postfix(TurnDirector __instance) {
             Mod.Log.Debug("TD:OCGD entered");
 
-            State.Reset();
+            ModState.Reset();
             // DO NOT OVERWRITE CombatDamage!
         }
     }

@@ -21,7 +21,7 @@ namespace DOTests {
                 new Vector3(-744f, 127.9f, 228.7f),
                 new Vector3(-768f, 128f, 128f)
             };
-            Vector3 centroid = Helper.FindCentroid(testPositions);
+            Vector3 centroid = GeometryUtils.FindCentroid(testPositions);
             Assert.AreEqual(-769.8802f, centroid.x);
             Assert.AreEqual(129.9787f, centroid.y);
             Assert.AreEqual(213.25f, centroid.z);

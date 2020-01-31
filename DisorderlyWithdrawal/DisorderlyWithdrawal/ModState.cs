@@ -3,7 +3,7 @@ using TMPro;
 
 namespace DisorderlyWithdrawal {
 
-    public static class State {
+    public static class ModState {
 
         public static bool WithdrawStarted = false;
 
