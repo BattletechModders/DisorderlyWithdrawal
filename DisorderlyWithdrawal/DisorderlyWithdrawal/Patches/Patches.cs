@@ -124,7 +124,7 @@ namespace DisorderlyWithdrawal.Patches {
             }
 
             public static void OnContinue() {
-                Mod.Log.Debug($"CHUDREM:ORC OnContinue");
+                Mod.Log.Trace($"CHUDREM:ORC OnContinue");
                 ModState.HUD.SelectionHandler.GenericPopup = null;
             }
         }
@@ -199,6 +199,10 @@ namespace DisorderlyWithdrawal.Patches {
 
                         ModState.RetreatButton.SetState(ButtonState.Enabled, false);
                         ModState.RetreatButtonText.SetText($"Withdraw");
+                    } else {
+                        int roundsToWait = ModState.CanWithdrawOnRound - round;
+                        Mod.Log.Info($" -- Player must wait:{roundsToWait} rounds for pickup.");
+                        ModState.RetreatButtonText.SetText($"In { roundsToWait } Rounds");
                     }
                 }
             }
