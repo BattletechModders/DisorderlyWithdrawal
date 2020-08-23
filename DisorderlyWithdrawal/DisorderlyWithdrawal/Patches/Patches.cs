@@ -12,14 +12,14 @@ namespace DisorderlyWithdrawal.Patches {
     [HarmonyPatch(new Type[] {  typeof(CombatGameState), typeof(CombatHUD) })]
     public static class CombatHUDRetreatESCMenu_Init {
         public static void Postfix(CombatHUDRetreatEscMenu __instance, CombatGameState ___Combat, CombatHUD ___HUD) {
-            Mod.Log.Trace($"CHUDREM:INIT - entered");
+            Mod.Log.Trace?.Write($"CHUDREM:INIT - entered");
 
             ModState.HUD = ___HUD;
             ModState.Combat = ___Combat;
 
             ModState.RetreatButton = __instance.RetreatButton;
             if (__instance.RetreatButton.gameObject.activeSelf) {
-                Mod.Log.Info(" We are in not a priority contract or skirmish, enabling withdrawal.");
+                Mod.Log.Info?.Write(" We are in not a priority contract or skirmish, enabling withdrawal.");
                 ModState.WithdrawIsAvailable = true;
 
                 Transform textT = __instance.RetreatButton.gameObject.transform.Find("Text");
@@ -27,12 +27,12 @@ namespace DisorderlyWithdrawal.Patches {
                     GameObject textGO = textT.gameObject;
                     ModState.RetreatButtonText = textGO.GetComponent<TextMeshProUGUI>();
                 } else {
-                    Mod.Log.Error("Failed to find text component, cannot proceed! Disabling withdrawal logic.");
+                    Mod.Log.Error?.Write("Failed to find text component, cannot proceed! Disabling withdrawal logic.");
                     ModState.WithdrawIsAvailable = false;
                 }
 
             } else {
-                Mod.Log.Info(" We are in a priority contract or skirmish, preventing withdrawal.");
+                Mod.Log.Info?.Write(" We are in a priority contract or skirmish, preventing withdrawal.");
                 ModState.WithdrawIsAvailable = true;
 
             }
@@ -42,13 +42,13 @@ namespace DisorderlyWithdrawal.Patches {
         [HarmonyPatch(typeof(CombatHUDRetreatEscMenu), "OnRetreatButtonPressed")]
         public static class CombatHUDRetreatESCMenu_OnRetreatButtonPressed {
             public static bool Prefix(CombatHUDRetreatEscMenu __instance, HBSDOTweenButton ___RetreatButton, CombatGameState ___Combat, CombatHUD ___HUD) {
-                Mod.Log.Trace($"CHUDREM:ORBP entered");
+                Mod.Log.Trace?.Write($"CHUDREM:ORBP entered");
 
-                Mod.Log.Debug($"  RetreatButton pressed -> withdrawStarted:{ModState.WithdrawStarted} " +
+                Mod.Log.Debug?.Write($"  RetreatButton pressed -> withdrawStarted:{ModState.WithdrawStarted} " +
                     $"CurrentRound:{___Combat.TurnDirector.CurrentRound} CanWithdrawOn:{ModState.CanWithdrawOnRound} CanApproachOn:{ModState.CanApproachOnRound}");
 
                 if (ModState.WithdrawStarted && ModState.CanWithdrawOnRound == ___Combat.TurnDirector.CurrentRound) {
-                    Mod.Log.Debug($"Checking for combat damage and active enemies");
+                    Mod.Log.Debug?.Write($"Checking for combat damage and active enemies");
                     ModState.CombatDamage = Helper.CalculateCombatDamage();
                     if (ModState.CombatDamage > 0 && ___Combat.TurnDirector.DoAnyUnitsHaveContactWithEnemy) {
                         int repairCost = (int)Math.Ceiling(ModState.CombatDamage) * Mod.Config.LeopardRepairCostPerDamage;
@@ -62,7 +62,7 @@ namespace DisorderlyWithdrawal.Patches {
                         ___HUD.SelectionHandler.GenericPopup = builder.Render();
                         return false;
                     } else {
-                        Mod.Log.Info($" Immediate withdraw due to no enemies");
+                        Mod.Log.Info?.Write($" Immediate withdraw due to no enemies");
                         OnImmediateWithdraw(__instance.IsGoodFaithEffort());
                         return false;
                     }
@@ -72,7 +72,7 @@ namespace DisorderlyWithdrawal.Patches {
             }
 
             public static void OnImmediateWithdraw(bool isGoodFaith) {
-                Mod.Log.Trace($"CHUDREM:ORBP:OnImmediateWithdraw - {isGoodFaith}");
+                Mod.Log.Trace?.Write($"CHUDREM:ORBP:OnImmediateWithdraw - {isGoodFaith}");
                 CombatGameState Combat = UnityGameInstance.BattleTechGame.Combat;
                 MissionRetreatMessage message = new MissionRetreatMessage(isGoodFaith);
                 Combat.MessageCenter.PublishMessage(message);
@@ -83,20 +83,20 @@ namespace DisorderlyWithdrawal.Patches {
         [HarmonyPatch(typeof(CombatHUDRetreatEscMenu), "OnRetreatConfirmed")]
         public static class CombatHUDRetreatESCMenu_OnRetreatConfirmed {
             public static bool Prefix(CombatHUDRetreatEscMenu __instance, CombatGameState ___Combat, CombatHUD ___HUD) {
-                Mod.Log.Trace("CHUDREM:ORC entered");
+                Mod.Log.Trace?.Write("CHUDREM:ORC entered");
 
                 if (___Combat == null || ___Combat.ActiveContract.ContractTypeValue.IsSkirmish) {
                     return true;
                 } else {
 
                     int roundsToWait = Helper.RoundsToWaitByAerospace();
-                    Mod.Log.Info($"Player must wait:{roundsToWait} rounds for pickup.");
+                    Mod.Log.Info?.Write($"Player must wait:{roundsToWait} rounds for pickup.");
 
                     if (roundsToWait > 0) {
                         ModState.WithdrawStarted = true;
                         ModState.CanWithdrawOnRound = ___Combat.TurnDirector.CurrentRound + roundsToWait;
                         ModState.CanApproachOnRound = ModState.CanWithdrawOnRound + Helper.RoundsToWaitByAerospace(); ;
-                        Mod.Log.Info($" Withdraw triggered on round {___Combat.TurnDirector.CurrentRound}. canWithdrawOn:{ModState.CanWithdrawOnRound}  canApproachOn: {ModState.CanApproachOnRound}");
+                        Mod.Log.Info?.Write($" Withdraw triggered on round {___Combat.TurnDirector.CurrentRound}. canWithdrawOn:{ModState.CanWithdrawOnRound}  canApproachOn: {ModState.CanApproachOnRound}");
 
                         ModState.RetreatButton = __instance.RetreatButton;
                         ModState.HUD = ___HUD;
@@ -124,7 +124,7 @@ namespace DisorderlyWithdrawal.Patches {
             }
 
             public static void OnContinue() {
-                Mod.Log.Trace($"CHUDREM:ORC OnContinue");
+                Mod.Log.Trace?.Write($"CHUDREM:ORC OnContinue");
                 ModState.HUD.SelectionHandler.GenericPopup = null;
             }
         }
@@ -136,20 +136,20 @@ namespace DisorderlyWithdrawal.Patches {
             public static bool Prepare() { return ModState.WithdrawIsAvailable && ModState.Combat != null && ModState.Combat.TurnDirector != null;  }
 
             public static void Postfix(CombatHUDRetreatEscMenu __instance, CombatGameState ___Combat, CombatHUD ___HUD) {
-                Mod.Log.Trace("CHUDREM:U entered");
+                Mod.Log.Trace?.Write("CHUDREM:U entered");
 
                 try {
-                    Mod.Log.Debug($" On ESCmenu update -> currentRound:{___Combat.TurnDirector.CurrentRound} canWithdrawOn:{ModState.CanWithdrawOnRound} canApproachOn:{ModState.CanApproachOnRound}");
+                    Mod.Log.Debug?.Write($" On ESCmenu update -> currentRound:{___Combat.TurnDirector.CurrentRound} canWithdrawOn:{ModState.CanWithdrawOnRound} canApproachOn:{ModState.CanApproachOnRound}");
                     if (___Combat.TurnDirector.CurrentRound < ModState.CanWithdrawOnRound) {
                         int withdrawIn = ModState.CanWithdrawOnRound - ___Combat.TurnDirector.CurrentRound;
-                        Mod.Log.Debug($" Turns to withdraw: {withdrawIn}  currentRound:{___Combat.TurnDirector.CurrentRound} canWithdrawOn:{ModState.CanWithdrawOnRound} canApproachOn:{ModState.CanApproachOnRound}");
+                        Mod.Log.Debug?.Write($" Turns to withdraw: {withdrawIn}  currentRound:{___Combat.TurnDirector.CurrentRound} canWithdrawOn:{ModState.CanWithdrawOnRound} canApproachOn:{ModState.CanApproachOnRound}");
 
                         __instance.RetreatButton.SetState(ButtonState.Disabled, false);
                         ModState.RetreatButtonText.fontSize = 24;
                         ModState.RetreatButtonText.color = Color.white;
                         ModState.RetreatButtonText.SetText($"In { withdrawIn } Rounds");
                     } else if (___Combat.TurnDirector.CurrentRound == ModState.CanWithdrawOnRound) {
-                        Mod.Log.Debug($" Can withdraw on this turn. currentRound:{___Combat.TurnDirector.CurrentRound} canWithdrawOn:{ModState.CanWithdrawOnRound} canApproachOn:{ModState.CanApproachOnRound}");
+                        Mod.Log.Debug?.Write($" Can withdraw on this turn. currentRound:{___Combat.TurnDirector.CurrentRound} canWithdrawOn:{ModState.CanWithdrawOnRound} canApproachOn:{ModState.CanApproachOnRound}");
 
                         if (__instance.RetreatButton.BaseState != ButtonState.Enabled) {
                             __instance.RetreatButton.SetState(ButtonState.Enabled, false);
@@ -159,7 +159,7 @@ namespace DisorderlyWithdrawal.Patches {
                         ModState.RetreatButtonText.SetText($"Withdraw");
                     } else if (ModState.CanApproachOnRound > ___Combat.TurnDirector.CurrentRound) {
                         int readyIn = ModState.CanApproachOnRound - ___Combat.TurnDirector.CurrentRound;
-                        Mod.Log.Debug($" Turns to ready: {readyIn}  currentRound:{___Combat.TurnDirector.CurrentRound} canWithdrawOn:{ModState.CanWithdrawOnRound} canApproachOn:{ModState.CanApproachOnRound}");
+                        Mod.Log.Debug?.Write($" Turns to ready: {readyIn}  currentRound:{___Combat.TurnDirector.CurrentRound} canWithdrawOn:{ModState.CanWithdrawOnRound} canApproachOn:{ModState.CanApproachOnRound}");
 
                         __instance.RetreatButton.SetState(ButtonState.Disabled, false);
                         ModState.RetreatButtonText.fontSize = 24;
@@ -167,8 +167,8 @@ namespace DisorderlyWithdrawal.Patches {
                         ModState.RetreatButtonText.SetText($"In { readyIn } Rounds");
                     }
                 } catch (Exception e) {
-                    Mod.Log.Error("Failed to perform update logic!");
-                    Mod.Log.Error(e);
+                    Mod.Log.Error?.Write("Failed to perform update logic!");
+                    Mod.Log.Error?.Write(e);
                 }
             }
         }
@@ -176,8 +176,8 @@ namespace DisorderlyWithdrawal.Patches {
         [HarmonyPatch(typeof(TurnDirector), "BeginNewRound")]
         public static class TurnDirector_BeginNewRound {
             static void Postfix(TurnDirector __instance, int round) {
-                Mod.Log.Trace("TD:BNR entered");
-                Mod.Log.Debug($" OnNewRound -> withdrawStarted:{ModState.WithdrawStarted} canWithdrawOn:{ModState.CanWithdrawOnRound}");
+                Mod.Log.Trace?.Write("TD:BNR entered");
+                Mod.Log.Debug?.Write($" OnNewRound -> withdrawStarted:{ModState.WithdrawStarted} canWithdrawOn:{ModState.CanWithdrawOnRound}");
 
                 if (ModState.WithdrawStarted) {
                     if (round == ModState.CanWithdrawOnRound) {
@@ -201,14 +201,14 @@ namespace DisorderlyWithdrawal.Patches {
                         ModState.RetreatButtonText.SetText($"Withdraw");
                     } else {
                         int roundsToWait = ModState.CanWithdrawOnRound - round;
-                        Mod.Log.Info($" -- Player must wait:{roundsToWait} rounds for pickup.");
+                        Mod.Log.Info?.Write($" -- Player must wait:{roundsToWait} rounds for pickup.");
                         ModState.RetreatButtonText.SetText($"In { roundsToWait } Rounds");
                     }
                 }
             }
 
             public static void OnContinue() {
-                Mod.Log.Debug($"TD:BNR OnContinue");
+                Mod.Log.Debug?.Write($"TD:BNR OnContinue");
                 ModState.HUD.SelectionHandler.GenericPopup = null;
             }
         }
@@ -216,7 +216,7 @@ namespace DisorderlyWithdrawal.Patches {
         [HarmonyPatch(typeof(TurnDirector), "OnCombatGameDestroyed")]
         public static class TurnDirector_OnCombatGameDestroyed {
             static void Postfix(TurnDirector __instance) {
-                Mod.Log.Debug("TD:OCGD entered");
+                Mod.Log.Debug?.Write("TD:OCGD entered");
 
                 ModState.Reset();
                 // DO NOT OVERWRITE CombatDamage!

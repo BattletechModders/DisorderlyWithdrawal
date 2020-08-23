@@ -33,13 +33,13 @@ namespace DisorderlyWithdrawal {
         public int NoWingMinRounds = 4;
 
         public void LogConfig() {
-            Mod.Log.Info("=== MOD CONFIG BEGIN ===");
-            Mod.Log.Info($"  DEBUG: {this.Debug}");
-            Mod.Log.Info($"  LeopardRepairCostPerDamage:{LeopardRepairCostPerDamage}");
-            Mod.Log.Info($"  Light Wing  - MonthlyCost:x{LightWingMonthlyCost} LeopardDamage:{LightWingLeopardDamage} MaxRounds:{LightWingMaxRounds} MinRounds:{LightWingMinRounds}");
-            Mod.Log.Info($"  Medium Wing - MonthlyCost:x{MediumWingMonthlyCost} LeopardDamage:{MediumWingLeopardDamage} MaxRounds:{MediumWingMaxRounds} MinRounds:{MediumWingMinRounds}");
-            Mod.Log.Info($"  Heavy Wing  - MonthlyCost:x{HeavyWingMonthlyCost} LeopardDamage:{HeavyWingLeopardDamage} MaxRounds:{HeavyWingMaxRounds} MinRounds:{HeavyWingMinRounds}");
-            Mod.Log.Info("=== MOD CONFIG END ===");
+            Mod.Log.Info?.Write("=== MOD CONFIG BEGIN ===");
+            Mod.Log.Info?.Write($"  DEBUG: {this.Debug}");
+            Mod.Log.Info?.Write($"  LeopardRepairCostPerDamage:{LeopardRepairCostPerDamage}");
+            Mod.Log.Info?.Write($"  Light Wing  - MonthlyCost:x{LightWingMonthlyCost} LeopardDamage:{LightWingLeopardDamage} MaxRounds:{LightWingMaxRounds} MinRounds:{LightWingMinRounds}");
+            Mod.Log.Info?.Write($"  Medium Wing - MonthlyCost:x{MediumWingMonthlyCost} LeopardDamage:{MediumWingLeopardDamage} MaxRounds:{MediumWingMaxRounds} MinRounds:{MediumWingMinRounds}");
+            Mod.Log.Info?.Write($"  Heavy Wing  - MonthlyCost:x{HeavyWingMonthlyCost} LeopardDamage:{HeavyWingLeopardDamage} MaxRounds:{HeavyWingMaxRounds} MinRounds:{HeavyWingMinRounds}");
+            Mod.Log.Info?.Write("=== MOD CONFIG END ===");
         }
     }
 }

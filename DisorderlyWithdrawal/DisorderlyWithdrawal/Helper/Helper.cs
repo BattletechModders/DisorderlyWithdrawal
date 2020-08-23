@@ -23,7 +23,7 @@ namespace DisorderlyWithdrawal {
             SimGameState simGameState = UnityGameInstance.BattleTechGame.Simulation;
             Statistic aerospaceAssets = simGameState.CompanyStats.GetStatistic("AerospaceAssets");
             int aerospaceSupport = aerospaceAssets != null ? aerospaceAssets.Value<int>() : 0;
-            Mod.Log.Info($"Player has aerospace support:{aerospaceSupport}");
+            Mod.Log.Info?.Write($"Player has aerospace support:{aerospaceSupport}");
 
             int flightTimeRoll = 0;
             switch (aerospaceSupport) {
@@ -41,7 +41,7 @@ namespace DisorderlyWithdrawal {
                     break;
             }
             int roundsToWait = Math.Max(0, flightTimeRoll - aerospaceSupport);
-            Mod.Log.Info($"Aerospace support gives {roundsToWait} rounds to wait.");
+            Mod.Log.Info?.Write($"Aerospace support gives {roundsToWait} rounds to wait.");
 
             return roundsToWait;
         }
@@ -51,33 +51,33 @@ namespace DisorderlyWithdrawal {
         public static float CalculateCombatDamage() {
             CombatGameState Combat = UnityGameInstance.BattleTechGame.Combat;
 
-            Mod.Log.Debug($"Finding player units centroid");
+            Mod.Log.Debug?.Write($"Finding player units centroid");
             List<AbstractActor> playerUnits  = Combat.LocalPlayerTeam.units;
             List<Vector3> playerPositions = playerUnits.Select(aa => aa.CurrentPosition).ToList();
             Vector3 playerUnitsCentroid = GeometryUtils.FindCentroid(playerPositions);
 
-            Mod.Log.Debug($"Finding enemy units");
+            Mod.Log.Debug?.Write($"Finding enemy units");
             List<AbstractActor> enemyUnits = Combat.AllEnemies;
             float totalDamage = 0.0f;
             foreach (AbstractActor enemy in enemyUnits) {
                 float enemyDamage = 0.0f;
                 float distance = Vector3.Distance(playerUnitsCentroid, enemy.CurrentPosition);
-                Mod.Log.Debug($"Enemy:{enemy.DisplayName}_{enemy?.GetPilot()?.Name} is distance:{distance}m " +
+                Mod.Log.Debug?.Write($"Enemy:{enemy.DisplayName}_{enemy?.GetPilot()?.Name} is distance:{distance}m " +
                     $"at position:{enemy.CurrentPosition} from centroid:{playerUnitsCentroid}");
 
                 foreach (Weapon weapon in enemy.Weapons) {
                     if (weapon.MaxRange >= distance) {
-                        Mod.Log.Debug($"Enemy:{enemy.DisplayName}_{enemy?.GetPilot()?.Name} " +
+                        Mod.Log.Debug?.Write($"Enemy:{enemy.DisplayName}_{enemy?.GetPilot()?.Name} " +
                             $"has weapon:{weapon.Name} in range. Adding {weapon.DamagePerShot} damage for {weapon.ShotsWhenFired} shots.");
                         enemyDamage += (weapon.DamagePerShot * weapon.ShotsWhenFired);
                     }
                 }
 
-                Mod.Log.Debug($"Total damage from enemy:{enemy.DisplayName}_{enemy?.GetPilot()?.Name} is {enemyDamage}.");
+                Mod.Log.Debug?.Write($"Total damage from enemy:{enemy.DisplayName}_{enemy?.GetPilot()?.Name} is {enemyDamage}.");
                 totalDamage += enemyDamage;
             }
 
-            Mod.Log.Debug($"Total damage from all enemies is:{totalDamage}");
+            Mod.Log.Debug?.Write($"Total damage from all enemies is:{totalDamage}");
             return totalDamage;
         }
     }
