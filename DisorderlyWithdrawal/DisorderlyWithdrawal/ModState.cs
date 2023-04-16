@@ -1,10 +1,11 @@
-﻿using BattleTech;
-using BattleTech.UI;
+﻿using BattleTech.UI;
 using TMPro;
 
-namespace DisorderlyWithdrawal {
+namespace DisorderlyWithdrawal
+{
 
-    public static class ModState {
+    public static class ModState
+    {
 
         public static bool WithdrawStarted = false;
         public static bool WithdrawIsAvailable = false;
@@ -19,7 +20,8 @@ namespace DisorderlyWithdrawal {
 
         public static float CombatDamage = 0f;
 
-        public static void Reset() {
+        public static void Reset()
+        {
             // Reinitialize state
             WithdrawStarted = false;
             WithdrawIsAvailable = false;

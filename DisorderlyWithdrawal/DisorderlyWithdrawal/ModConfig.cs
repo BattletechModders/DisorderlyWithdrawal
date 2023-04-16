@@ -1,7 +1,9 @@
 ﻿
-namespace DisorderlyWithdrawal {
+namespace DisorderlyWithdrawal
+{
 
-    public class ModConfig {
+    public class ModConfig
+    {
 
         // If true, troubleshooting logging will be enabled
         public bool Debug = false;
@@ -32,7 +34,8 @@ namespace DisorderlyWithdrawal {
         public int NoWingMaxRounds = 6;
         public int NoWingMinRounds = 4;
 
-        public void LogConfig() {
+        public void LogConfig()
+        {
             Mod.Log.Info?.Write("=== MOD CONFIG BEGIN ===");
             Mod.Log.Info?.Write($"  DEBUG: {this.Debug}");
             Mod.Log.Info?.Write($"  LeopardRepairCostPerDamage:{LeopardRepairCostPerDamage}");
