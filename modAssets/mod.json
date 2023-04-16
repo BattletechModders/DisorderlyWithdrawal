@@ -1,7 +1,7 @@
 {
     "Name": "DisorderlyWithdrawal",
     "Enabled": true,
-    "Version": "0.6.0",
+    "Version": "2.0.0",
     "Description": "Makes hot-withdrawals more realistic",
     "Author": "IceRaptor",
     "Website": "https://github.com/IceRaptor/DisorderlyWithdrawal",
